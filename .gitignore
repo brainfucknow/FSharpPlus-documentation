@@ -59,3 +59,7 @@ nunit-*.xml
 # Verification scratch space
 build/
 .upstream/
+
+# Python bytecode
+__pycache__/
+*.pyc

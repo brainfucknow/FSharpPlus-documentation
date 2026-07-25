@@ -15,6 +15,7 @@ Checked against `fsprojects/FSharpPlus` at `master`, **1.9.1 (January 2026)**.
 | [`reference/computation-expressions.md`](reference/computation-expressions.md) | Every CE spelling and the builder it resolves to, incl. the `zapp` rename |
 | [`reference/operators.md`](reference/operators.md) | Operator table with full signatures and argument order |
 | [`reference/disambiguation.md`](reference/disambiguation.md) | Names that do **not** exist in F#+, and mappings from Haskell / Aether / FsToolkit |
+| [`reference/generic-functions.md`](reference/generic-functions.md) | Verified examples for public functions with **no upstream example** — `sort`, `groupBy`, `item1`–`5`, `lift3`, `gets`, … |
 
 ## Three findings that change the plan
 
@@ -31,6 +32,24 @@ Checked against `fsprojects/FSharpPlus` at `master`, **1.9.1 (January 2026)**.
 
 Also found: `index.fsx` — the front page, with real code examples — is one of the three pages **outside**
 the compiler's reach. Adding three `<Compile>` lines is the cheapest correctness win in the whole plan.
+
+## The measured coverage gap
+
+[`tools/coverage_gap.py`](tools/coverage_gap.py) computes the Step 3 work-list rather than curating it:
+
+```
+public named functions in the AutoOpen Operators module: 192
+with zero mentions anywhere in upstream docsrc/content:   53  (27%)
+of those, now carrying a verified example in this repo:    21
+```
+
+**Zero mentions** means no example, no prose, not one passing reference. The real gap is larger — a
+single mention is not an example — so this understates it. And the missing functions are not obscure:
+`sort`, `sortBy`, `distinct`, `groupBy`, `maxBy`, `minBy`, `forall`, `scan`, `sumBy`, and the entire
+`item1`–`item5` / `mapItem1`–`mapItem5` family.
+
+"Covered" here means *appears inside a compiled-and-executed snippet* — prose mentions do not count, so
+the number cannot be inflated by writing about a function instead of demonstrating it.
 
 ## Verification
 

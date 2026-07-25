@@ -58,6 +58,21 @@ jobs:
       - name: Lint verifiable snippets (structure only, no compiler needed)
         run: python tools/extract_snippets.py --lint-only
 
+      # Baseline is upstream's gap at the pinned commit. It fails if upstream ships new public
+      # functions with no docs at all, which is the leak this corpus exists to plug.
+      - name: Coverage gap against upstream docs
+        run: |
+          python tools/coverage_gap.py --upstream .upstream \
+            --covered-by reference/generic-functions.md \
+            --max-gap 53 | tee gap.txt
+          {
+            echo "## Coverage gap"
+            echo ""
+            echo '```'
+            head -4 gap.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   snippets:
     name: snippets (compile + execute)
     runs-on: ubuntu-latest

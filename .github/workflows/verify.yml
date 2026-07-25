@@ -118,6 +118,45 @@ jobs:
           path: build/verify/
           retention-days: 7
 
+  fsi:
+    name: snippets (dotnet fsi - second target)
+    runs-on: ubuntu-latest
+    # Separate job, not a step on `snippets`: the point is that these are two INDEPENDENT
+    # targets. Upstream PR #372 hit "Type constraint mismatch when applying the default type
+    # 'obj'" in a doc page that compiled fine as a project, so FSI and project compilation
+    # demonstrably disagree on SRTP-heavy code - and FSI is how a user actually pastes code.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('upstream.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Generate the FSI script
+        run: python tools/extract_snippets.py --out build/verify --fsi
+
+      - name: Execute value assertions under FSI
+        run: dotnet fsi --nologo build/verify/verify.fsx
+
+      - name: Upload generated script on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-fsi-script
+          path: build/verify/verify.fsx
+          retention-days: 7
+
   drift:
     name: drift (upstream master, non-blocking)
     runs-on: ubuntu-latest

@@ -61,19 +61,36 @@ fi
 
 if ! command -v dotnet >/dev/null 2>&1; then
   echo
-  echo "==> dotnet not found; skipping compile+execute."
-  echo "    Claim checks passed. Re-run with an SDK, or let CI do it."
+  echo "==> dotnet not found; skipping compile+execute. Claim checks passed."
+  echo
+  echo "    In a cloud/remote container the usual installers are typically blocked by the"
+  echo "    egress proxy - dot.net, builds.dotnet.microsoft.com, aka.ms and"
+  echo "    dotnetcli.azureedge.net all 403 on CONNECT, so dotnet-install.sh cannot work."
+  echo "    Do not fight the proxy; the Ubuntu 24.04 archive carries the SDK:"
+  echo
+  echo "        apt-get update                     # refresh first or the .deb URLs 404"
+  echo "        apt-get install -y dotnet-sdk-10.0"
+  echo
+  echo "    The generated project targets net8.0 but sets RollForward=LatestMajor, so a"
+  echo "    newer-major runtime is fine. See the 'Running the checks locally' section of"
+  echo "    README.md."
   exit 0
 fi
 
 echo
-echo "==> generating snippet project"
-python3 tools/extract_snippets.py --out build/verify
+echo "==> generating snippet project (+ FSI script)"
+python3 tools/extract_snippets.py --out build/verify --fsi
 
 echo
 echo "==> compiling"
 dotnet build build/verify/verify.fsproj -c Release --nologo
 
 echo
-echo "==> executing value assertions"
+echo "==> executing value assertions (project target)"
 dotnet run --project build/verify/verify.fsproj -c Release --no-build
+
+# Second target. Upstream PR #372 showed FSI and project compilation disagree on SRTP-heavy
+# code, and FSI is how a user actually pastes a snippet, so passing one is not passing both.
+echo
+echo "==> executing value assertions (dotnet fsi target)"
+dotnet fsi --nologo build/verify/verify.fsx

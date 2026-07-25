@@ -62,10 +62,34 @@ Every statement here is meant to be checkable by a machine, and CI checks it. Th
 |---|---|---|
 | `claims` | Every `file:line` citation resolves **and still contains the substring we claim**, against upstream at the pinned SHA. Every API presence/absence claim holds. | yes |
 | `snippets` | Every ```` ```fsharp verify ```` block **compiles and executes** against FSharpPlus 1.9.1 from NuGet, and its `// val` lines are asserted. | yes |
+| `fsi` | The same snippets executed under **`dotnet fsi`** — a second, independent target, because PR #372 showed FSI and project compilation disagree on SRTP-heavy code. | yes |
 | `drift` | The same claim checks against upstream `master`, weekly, advisory — so a stale pin surfaces as news rather than as a wrong table. | no |
 
 Run it locally with [`tools/verify.sh`](tools/verify.sh) (`--no-dotnet` if you have no SDK; the claim
 checks need only Python and a git clone).
+
+### Running the checks locally in a cloud container
+
+The usual .NET installers do not work in a proxied remote session: `dot.net`,
+`builds.dotnet.microsoft.com`, `aka.ms` and `dotnetcli.azureedge.net` all return **403 on CONNECT**, so
+`curl` and `dotnet-install.sh` both fail. Don't fight the proxy — the Ubuntu 24.04 archive carries the
+SDK and is reachable:
+
+```sh
+apt-get update                     # refresh indexes first, or the .deb URLs 404
+apt-get install -y dotnet-sdk-10.0
+```
+
+Two consequences worth knowing:
+
+- The generated project targets **net8.0** (upstream's TFM) but sets `RollForward=LatestMajor`, so it
+  runs on a newer-major runtime. Without that, the build succeeds and `dotnet run` dies with
+  `Framework 'Microsoft.NETCore.App', version '8.0.0' not found`.
+- `nuget.org` *is* reachable, so `PackageReference` restore and `#r "nuget: FSharpPlus, 1.9.1"` both
+  work — only the SDK download hosts are blocked.
+
+Verified end-to-end in such a container: `./tools/verify.sh` exits 0 with 43/43 assertions in both
+targets.
 
 ### Why the citations are pinned
 

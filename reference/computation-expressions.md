@@ -77,8 +77,21 @@ The distinction is about how effects combine, and it is observable:
   `ZipList` semantics give you without wrapping in `ZipList`.
 
 Picking the wrong one compiles fine and silently produces different results, which makes it a
-correctness trap rather than a syntax error — worth a verified example on both sides once a compiler is
-available.
+correctness trap rather than a syntax error. Both sides, compiled and executed in CI:
+
+```fsharp verify name=sequential_vs_zip
+open FSharpPlus
+
+// <*> on list is the cartesian product
+let sequential : int list = (+) <!> [1; 2; 3] <*> [10; 20; 30]
+// val sequential : int list = [11; 21; 31; 12; 22; 32; 13; 23; 33]
+
+// <.> on list zips element-wise (List.map2Shortest, ZipApplicative.fs:81)
+let zipped : int list = (+) <!> [1; 2; 3] <.> [10; 20; 30]
+// val zipped : int list = [11; 22; 33]
+```
+
+Nine results versus three, from a one-character difference, with no compile error to warn you.
 
 ## Lazy vs strict: why it cannot be inferred from the call site
 
@@ -91,6 +104,19 @@ member inline this.While ([<InlineIfLambda>]guard, body: '``MonadPlus<'T>``) : '
     // Check the type is lazy, otherwise display a warning.
     let __ () = TryWith.InvokeForWhile (Unchecked.defaultof<'``MonadPlus<'T>``>) (fun (_: exn) -> ...)
     this.WhileImpl (guard, body)
+```
+
+A strict monadic CE over `option`, compiled and executed in CI:
+
+```fsharp verify name=monad_strict_option
+open FSharpPlus
+
+let added : int option = monad' {
+    let! a = Some 1
+    let! b = Some 2
+    return a + b
+}
+// val added : int option = Some 3
 ```
 
 Rule of thumb, from what the upstream CE page demonstrates

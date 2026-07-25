@@ -1,0 +1,146 @@
+name: verify
+
+# Every statement this repo makes should be checkable by a machine.
+#
+#   claims    - file:line citations and API presence/absence, against upstream at the pinned SHA
+#   snippets  - F#+ code blocks tagged `verify`, compiled AND executed against the real package
+#   drift     - the same claim checks against upstream master, non-blocking, so we learn when
+#               master moves away from the pin instead of finding out via a stale table
+#
+# The snippets job is the compiler oracle. It is the reason CI exists here: the authoring
+# environment had no .NET SDK, so nothing containing F#+ code could be verified before this.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  schedule:
+    # Mondays 06:00 UTC - catches upstream drift without waiting for someone to push.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  claims:
+    name: claims (citations + API presence/absence)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Read the upstream pin
+        id: pin
+        run: |
+          python - <<'EOF' >> "$GITHUB_OUTPUT"
+          import json
+          d = json.load(open("upstream.json"))
+          print("sha=" + d["sha"])
+          EOF
+
+      - name: Check out upstream FSharpPlus at the pinned SHA
+        uses: actions/checkout@v4
+        with:
+          repository: fsprojects/FSharpPlus
+          ref: ${{ steps.pin.outputs.sha }}
+          path: .upstream
+
+      - name: Verify citations resolve and still say what we claim
+        run: python tools/check_citations.py --upstream .upstream
+
+      - name: Verify API presence/absence claims
+        run: python tools/check_absence.py --upstream .upstream
+
+      - name: Lint verifiable snippets (structure only, no compiler needed)
+        run: python tools/extract_snippets.py --lint-only
+
+  snippets:
+    name: snippets (compile + execute)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('upstream.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Generate the snippet project
+        run: python tools/extract_snippets.py --out build/verify
+
+      - name: Compile
+        run: dotnet build build/verify/verify.fsproj -c Release --nologo
+
+      - name: Execute value assertions
+        run: dotnet run --project build/verify/verify.fsproj -c Release --no-build
+
+      - name: Upload generated project on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-snippet-project
+          path: build/verify/
+          retention-days: 7
+
+  drift:
+    name: drift (upstream master, non-blocking)
+    runs-on: ubuntu-latest
+    # Only worth running where a stale pin is actionable news, not on every branch push.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check out upstream master
+        uses: actions/checkout@v4
+        with:
+          repository: fsprojects/FSharpPlus
+          ref: master
+          path: .upstream
+
+      - name: Report how far master has moved from the pin
+        run: |
+          PINNED=$(python -c "import json;print(json.load(open('upstream.json'))['sha'])")
+          HEAD_SHA=$(git -C .upstream rev-parse HEAD)
+          {
+            echo "## Upstream drift"
+            echo ""
+            echo "| | commit |"
+            echo "|---|---|"
+            echo "| pinned | \`${PINNED:0:12}\` |"
+            echo "| master | \`${HEAD_SHA:0:12}\` |"
+            echo ""
+            if [ "$PINNED" = "$HEAD_SHA" ]; then
+              echo "Pin is current."
+            else
+              echo "Master has moved. Claim checks below run against master and are advisory:"
+              echo "line-anchored citations are *expected* to drift, so failures there mean"
+              echo "\"re-pin and re-check\", not \"the docs are wrong\"."
+              echo ""
+              echo "Absence failures are different - those mean upstream added something we"
+              echo "documented as non-existent, and the prose is now wrong regardless of the pin."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Citations against master (advisory)
+        run: python tools/check_citations.py --upstream .upstream --warn-only
+
+      - name: API presence/absence against master (advisory)
+        run: python tools/check_absence.py --upstream .upstream --warn-only

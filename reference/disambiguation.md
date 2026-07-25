@@ -24,6 +24,7 @@ data, it came from Haskell, FSharpx, FsToolkit.ErrorHandling, or Aether.
 | `asyncResult`, `taskResult` CEs | FsToolkit.ErrorHandling | `monad` over `Async<Result<_,_>>`, or `ResultT` from `FSharpPlus.Data` | `Data/Error.fs` |
 | `sequenceResult`, `traverseResult`, `bindResult` | FsToolkit.ErrorHandling | generic `sequence`, `traverse`, `>>=` | `Operators.fs` |
 | `Result.sequence` / FsToolkit's `Result` CE helpers | FsToolkit | the generic functions work on `Result` directly | — |
+| `memoize` | plausible guess from the module name | **`memoizeN`** — the only memoize function F#+ defines | `Memoization.fs:24` |
 
 **`mapM` is a special case.** It exists, but **only** as `SeqT.mapM` (`Data/Seq.fs:586`) — a qualified
 member on `SeqT`, not a global generic function. Writing `mapM f xs` at the top level will not resolve.
@@ -47,6 +48,34 @@ The CE builders make the split visible: the **zip** applicative builders lift wi
 (`Builders.fs:229`, `:239`, `:249`) while the **sequential** ones lift with `result`
 (`Builders.fs:208`, `:218`). That is the clearest available signal for which function a given
 applicative context wants.
+
+`result` lifting into two different monads, compiled and executed in CI:
+
+```fsharp verify name=result_lifts
+open FSharpPlus
+
+let intoOption : int option = result 42
+// val intoOption : int option = Some 42
+
+let intoResult : Result<int,string> = result 42
+// val intoResult : Result<int,string> = Ok 42
+```
+
+Note `pur` is deliberately not given a value assertion here: for `list` its instance is
+`fun x -> List.cycle [x]` (`Control/ZipApplicative.fs:44`), i.e. conceptually infinite, so it is not
+demonstrable as a finite `// val` claim on that type.
+
+`traverse` is what you want where Haskell would use `mapM`:
+
+```fsharp verify name=traverse_options
+open FSharpPlus
+
+let allSome : int list option = traverse (fun x -> if x > 0 then Some x else None) [1; 2; 3]
+// val allSome : int list option = Some [1; 2; 3]
+
+let oneNone : int list option = traverse (fun x -> if x > 0 then Some x else None) [1; -2; 3]
+// val oneNone : int list option = None
+```
 
 ## Mapping from other libraries
 

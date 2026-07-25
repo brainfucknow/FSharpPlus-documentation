@@ -44,7 +44,7 @@ Notably **not** auto-opened — each needs an explicit `open`:
 | Operators `<!>` `<*>` `>>=` `>=>` `<|>` `++` `*>` `<*` `<.>` `.>` `<.` `=>>` | `open FSharpPlus` | `Operators.fs` (`AutoOpen`) |
 | CEs `monad`, `monad'`, `monad.plus`, `monad.plus'`, `applicative`, `applicative2/3`, `zapp`, `zapp2/3` | `open FSharpPlus` | `Builders.fs:17-18` (`AutoOpen`) |
 | `tryParse`, `parse`, `tryParseArray`, `parseArray`, `(\|Parsed\|_\|)` | `open FSharpPlus` | `Parsing.fs:5-6` (`AutoOpen`) |
-| `memoize`, `memoizeN` | `open FSharpPlus` | `Memoization.fs:8-9` (`AutoOpen`) |
+| `memoizeN` — there is **no** plain `memoize` | `open FSharpPlus` | `Memoization.fs:8-9` (`AutoOpen`), definition at `:24` |
 | Extension modules: `String.toLower`, `Option.*`, `Result.*`, `Seq.*`, `List.*`, `Map.*`, `Task.*`, `Async.*`, `Dict.*`, `ResizeArray.*`, `Obj.*`, … | `open FSharpPlus` | `Extensions/*.fs`, all `namespace FSharpPlus`, each `[<RequireQualifiedAccess>] module` (e.g. `String.fs:4-5`) |
 | Types: `Reader`, `Writer`, `State`, `Cont`, `Validation`, `NonEmptyList`, `NonEmptySeq`, `NonEmptyMap`, `NonEmptySet`, `DList`, `ZipList`, `Identity`, `Const`, `Compose`, `Coproduct`, `Kleisli`, `Free`, `ParallelArray`, `MultiMap` | `open FSharpPlus.Data` | all of `Data/*.fs` declare `namespace FSharpPlus.Data` |
 | Monoid wrappers: `Dual`, `Mult`, `First`, `Last`, `All`, `Any` | `open FSharpPlus.Data` | `Data/Monoids.fs` |
@@ -94,3 +94,31 @@ open FSharpPlus.Math.Generic
 
 `FSharpPlus.Control` is deliberately absent: it is for authoring instances, and opening it in ordinary
 user code pulls a large surface of SRTP invokable types into scope for no benefit.
+
+## Verified examples
+
+Compiled and executed in CI. Lens work genuinely needs both opens — `^.` and `_1` come from
+`FSharpPlus.Lens`, and dropping `open FSharpPlus` breaks the surrounding generic functions:
+
+```fsharp verify name=lens_needs_two_opens
+open FSharpPlus
+open FSharpPlus.Lens
+
+let firstOf : int = (1, "a") ^. _1
+// val firstOf : int = 1
+
+let updated : int * string = (1, "a") |> (_1 .-> 99)
+// val updated : int * string = (99, "a")
+```
+
+`tryParse` comes from the `AutoOpen` `Parsing` module, so `open FSharpPlus` alone is enough:
+
+```fsharp verify name=try_parse
+open FSharpPlus
+
+let parsedInt : int option = tryParse "42"
+// val parsedInt : int option = Some 42
+
+let failedParse : int option = tryParse "nope"
+// val failedParse : int option = None
+```

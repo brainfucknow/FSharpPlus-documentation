@@ -8,8 +8,8 @@ written. Fuller tables: [`reference/`](reference/).
 
 ## Opens
 
-`open FSharpPlus` gives you generic functions, operators, computation expressions, `tryParse`, `memoize`,
-and the extension modules (`String.*`, `Option.*`, `Result.*`, `Seq.*`, …).
+`open FSharpPlus` gives you generic functions, operators, computation expressions, `tryParse`,
+`memoizeN`, and the extension modules (`String.*`, `Option.*`, `Result.*`, `Seq.*`, …).
 
 **Everything else is explicit** — these are *not* auto-opened:
 

@@ -127,9 +127,62 @@ Lens composition uses plain function composition `<<`, and composes **outside-in
 the second component of the first. This is the opposite of what Aether users expect, which is a
 cross-library contamination risk the plan calls out.
 
+## Verified examples
+
+Blocks tagged `verify` are compiled and **executed** in CI against F#+ 1.9.1 from NuGet, and the
+`// val` lines are asserted, not decorative. See [`../tools/extract_snippets.py`](../tools/extract_snippets.py).
+
+Map direction — `<!>` takes the function first, `|>>` takes the value first, same result:
+
+```fsharp verify name=map_direction
+open FSharpPlus
+
+let viaOperator : int list = (+) 1 <!> [1; 2; 3]
+// val viaOperator : int list = [2; 3; 4]
+
+let viaFlipped : int list = [1; 2; 3] |>> (+) 1
+// val viaFlipped : int list = [2; 3; 4]
+```
+
+The keep-side mnemonic — the angle bracket points at the side you keep:
+
+```fsharp verify name=keep_side_sequential
+open FSharpPlus
+
+let keepsLeft : int option = Some 1 <* Some 2
+// val keepsLeft : int option = Some 1
+
+let keepsRight : int option = Some 1 *> Some 2
+// val keepsRight : int option = Some 2
+```
+
+`++` is the monoid operator (F#'s `<>` is *not*):
+
+```fsharp verify name=monoid_plus
+open FSharpPlus
+
+let combinedLists : int list = [1; 2] ++ [3; 4]
+// val combinedLists : int list = [1; 2; 3; 4]
+
+let combinedStrings : string = "ab" ++ "cd"
+// val combinedStrings : string = "abcd"
+```
+
+Bind direction:
+
+```fsharp verify name=bind_direction
+open FSharpPlus
+
+let valueFirst : int option = Some 2 >>= fun x -> Some (x * 10)
+// val valueFirst : int option = Some 20
+
+let functionFirst : int option = (fun x -> Some (x * 10)) =<< Some 2
+// val functionFirst : int option = Some 20
+```
+
 ## Not verified here
 
 Precedence and associativity are determined by F#'s operator rules from the leading characters, not by
-these definitions, and interact with argument order in ways worth pinning down with compiled examples —
-specifically whether `f <!> x <*> y` and `x >>= f >>= g` chain without parentheses in every case. That
-belongs in the Step 3 corpus, where a compiler can settle it.
+these definitions. The `map_direction` and `bind_direction` snippets above confirm that `<!>` and `>>=`
+chain unparenthesised in those specific shapes; the general precedence table is not established by
+them.

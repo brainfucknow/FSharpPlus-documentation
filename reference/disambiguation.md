@@ -1,9 +1,11 @@
 # Disambiguation: what F#+ calls things, and what it does not have
 
-> **Verification status: absence is grep-verified; presence is source-cited.**
+> **Verification status: absence is grep-verified; `verify` snippets are compiler-verified.**
 > "Does not exist" rows were checked by searching every `let`/`let inline` definition across
-> `src/FSharpPlus/**/*.fs` at `master` (1.9.1). Absence of a definition is a fact a grep can establish,
-> so this page is firmer than it would be if it relied on a compiler. Snippets are not compile-verified.
+> `src/FSharpPlus/**/*.fs` at the pinned commit (1.9.1), and CI re-runs that search on every push and
+> weekly against `master`. Absence of a definition is a fact a grep can establish, so this page is
+> firmer than it would be if it relied on a compiler. Blocks tagged ```` ```fsharp verify ```` are
+> additionally compiled **and executed** against the released package.
 
 The plan's rationale for this page is sound: **explicitly naming APIs that do not exist suppresses a
 whole hallucination class.** A model that has been told `fmap` is absent will reach for `map`; a model

@@ -65,6 +65,20 @@ cannot quietly degrade or use a renamed API.
 This is precisely the gap identified upstream: `FSharpPlus.Docs` proves the doc pages *compile* but its
 entry point is `let main argv = 0`, so its 84 `// val` claims are never executed. Ours are.
 
+### The gates were proven to fail
+
+A gate that cannot go red is decoration, so each one was deliberately broken and observed failing:
+
+| Gate | Injected fault | Observed |
+|---|---|---|
+| `FS0044` obsolete-as-error | a snippet using `applicative'` | `error FS0044: This construct is deprecated. This value is obsolete. Use zapp instead` → `Build FAILED, 0 Warning(s) 1 Error(s)` |
+| Value assertion | `// val` claiming `[99; 99; 99]` for `map ((*) 2) [1; 2; 3]` | `FAIL negtest_wrong_value.wrongValue / expected: [99; 99; 99] / actual: [2; 4; 6]` → `19 passed, 1 failed`, exit 1 |
+| Citation drift | a shifted + renamed copy of upstream | every affected assertion reported by broken-claim name, exit 1 |
+| Absence claim | — | caught a real error unprompted: this repo claimed `memoize` exists when upstream defines only `memoizeN` |
+
+The two snippet faults were injected on this branch and reverted; the red runs remain in the Actions
+history as evidence. The clean run reports `19 value assertion(s): 19 passed, 0 failed`.
+
 ### Honest limits
 
 - The reference tables are **source-derived**, not compiler-derived. Namespace and `[<AutoOpen>]`

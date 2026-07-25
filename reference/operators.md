@@ -1,9 +1,10 @@
 # Operator reference, with argument order
 
-> **Verification status: source-derived, not compile-verified.**
+> **Verification status: signatures are source-derived; `verify` snippets are compiler-verified.**
 > Every signature below is transcribed from the `let inline` definition in
-> `src/FSharpPlus/Operators.fs` or `src/FSharpPlus/Lens.fs` at `master` (1.9.1), cited by line. No F#
-> compiler was available where this was written.
+> `src/FSharpPlus/Operators.fs` or `src/FSharpPlus/Lens.fs` at the pinned commit (1.9.1), cited by
+> line, and CI checks each cited line still says what is claimed. Blocks tagged ```` ```fsharp verify ````
+> are additionally compiled **and executed** against the released package.
 
 Operator *direction* is one of the plan's predicted failure buckets. The fix is not prose — it is
 showing the actual signature, because the signature is what disambiguates `<*` from `*>`.

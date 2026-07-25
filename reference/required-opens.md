@@ -1,10 +1,11 @@
 # Required `open` declarations
 
-> **Verification status: source-derived, not compile-verified.**
+> **Verification status: tables are source-derived; `verify` snippets are compiler-verified.**
 > Every row is read from module/namespace declarations and `[<AutoOpen>]` attributes in
-> `fsprojects/FSharpPlus` at `master` (1.9.1), cited as `file:line`. No F# compiler was available in
-> the environment where this was written, so the *code snippets* below have not been run. The
-> *namespace facts* do not depend on a compiler — they are declarations.
+> `fsprojects/FSharpPlus` at the pinned commit (1.9.1), cited as `file:line`, and CI checks each cited
+> line still says what is claimed. The *namespace facts* do not depend on a compiler — they are
+> declarations. Blocks tagged ```` ```fsharp verify ```` are additionally compiled **and executed**
+> against the released package.
 
 This is the table the plan predicts is the single highest-leverage artifact, because wrong `open` sets
 are expected to be the largest and cheapest-to-fix failure bucket.

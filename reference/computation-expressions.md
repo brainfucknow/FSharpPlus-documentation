@@ -1,9 +1,10 @@
 # Computation expression selection table
 
-> **Verification status: source-derived, not compile-verified.**
-> The alias graph and builder identities below are read directly from
-> `src/FSharpPlus/Builders.fs` at `master` (1.9.1), cited by line. No F# compiler was available where
-> this was written, so illustrative snippets have not been executed.
+> **Verification status: tables are source-derived; `verify` snippets are compiler-verified.**
+> The alias graph and builder identities below are read directly from `src/FSharpPlus/Builders.fs` at
+> the pinned commit (1.9.1), cited by line, and CI checks each cited line still says what is claimed.
+> Blocks tagged ```` ```fsharp verify ```` are additionally compiled **and executed** against the
+> released package, with their `// val` lines asserted. Untagged blocks are illustrative only.
 
 The plan's diagnosis is right and worth restating: this is not really a documentation gap, it is a
 **naming surface that cannot be guessed**. One builder has several spellings, and the lazy/strict
@@ -155,14 +156,3 @@ it.
 The applicative CEs are documented on other pages (`applicative-functors.fsx`,
 `abstraction-zipapplicative.fsx`), so a model retrieving "F#+ computation expressions" gets a page that
 silently omits half the CE surface. Merging this table into that page is the concrete fix.
-
-<!-- NEGATIVE TEST - temporary, removed in the next commit.
-     Proves the snippets job actually fails: (a) FS0044 blocks a renamed API,
-     (b) a wrong // val value fails at runtime. -->
-
-```fsharp verify name=negtest_wrong_value
-open FSharpPlus
-
-let wrongValue : int list = map ((*) 2) [1; 2; 3]
-// val wrongValue : int list = [99; 99; 99]
-```

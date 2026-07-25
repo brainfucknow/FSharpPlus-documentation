@@ -41,6 +41,18 @@ echo
 echo "==> snippet lint"
 python3 tools/extract_snippets.py --lint-only
 
+echo
+echo "==> exported corpus freshness"
+python3 tools/export_corpus.py --check
+
+echo
+echo "==> coverage gap"
+# Captured rather than piped to head: under `set -o pipefail` a closing head sends SIGPIPE
+# and the whole script would report failure on a passing check.
+gap_out=$(python3 tools/coverage_gap.py --upstream "$UPSTREAM" \
+  --covered-by reference/generic-functions.md --max-gap 53)
+printf '%s\n' "$gap_out" | sed -n '1,3p'
+
 if [[ "$RUN_DOTNET" == "0" ]]; then
   echo
   echo "==> skipping compile+execute (--no-dotnet)"

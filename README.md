@@ -16,6 +16,8 @@ Checked against `fsprojects/FSharpPlus` at `master`, **1.9.1 (January 2026)**.
 | [`reference/operators.md`](reference/operators.md) | Operator table with full signatures and argument order |
 | [`reference/disambiguation.md`](reference/disambiguation.md) | Names that do **not** exist in F#+, and mappings from Haskell / Aether / FsToolkit |
 | [`reference/generic-functions.md`](reference/generic-functions.md) | Verified examples for public functions with **no upstream example** — `sort`, `groupBy`, `item1`–`5`, `lift3`, `gets`, … |
+| [`AGENTS.md`](AGENTS.md) | Rules for coding agents working in F#+ codebases |
+| [`corpus/verified-snippets.jsonl`](corpus/verified-snippets.jsonl) | The verified corpus as JSONL — opens, code, expected type and value — for RAG, few-shot or fine-tuning |
 
 ## Three findings that change the plan
 

@@ -54,6 +54,9 @@ def mentioned(text, name):
 
 
 VERIFY_FENCE = re.compile(r"^```fsharp\s+verify\b", re.M)
+# Mirrors tools/extract_snippets.py: a 4+-backtick fence wraps markdown that shows snippet
+# syntax rather than being a snippet, so it must not count toward coverage either.
+OUTER_FENCE = re.compile(r"^````+\s*\w*\s*$")
 
 
 def verified_snippet_bodies(text):
@@ -67,7 +70,15 @@ def verified_snippet_bodies(text):
     out = []
     lines = text.splitlines()
     i = 0
+    in_outer = False
     while i < len(lines):
+        if OUTER_FENCE.match(lines[i]):
+            in_outer = not in_outer
+            i += 1
+            continue
+        if in_outer:
+            i += 1
+            continue
         if VERIFY_FENCE.match(lines[i]):
             j = i + 1
             while j < len(lines) and lines[j].strip() != "```":

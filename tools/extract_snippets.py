@@ -33,6 +33,9 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parent.parent
 
 FENCE = re.compile(r"^```fsharp\s+verify(?P<attrs>[^\n]*)$", re.M)
+# A 4+-backtick fence wraps markdown that *shows* snippet syntax rather than being one.
+# Without this, documenting the convention silently adds a snippet to the corpus.
+OUTER_FENCE = re.compile(r"^````+\s*\w*\s*$")
 VAL = re.compile(r"^\s*//\s*val\s+(?P<name>[A-Za-z_][A-Za-z0-9_']*)\s*:\s*(?P<type>[^=]+?)\s*=\s*(?P<value>.+?)\s*$")
 IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
@@ -56,7 +59,15 @@ def parse_markdown(path):
     out = []
     i = 0
     auto = 0
+    in_outer = False
     while i < len(lines):
+        if OUTER_FENCE.match(lines[i]):
+            in_outer = not in_outer
+            i += 1
+            continue
+        if in_outer:
+            i += 1
+            continue
         m = FENCE.match(lines[i])
         if not m:
             i += 1

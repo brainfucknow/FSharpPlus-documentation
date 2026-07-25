@@ -60,8 +60,15 @@ jobs:
 
       # Baseline is upstream's gap at the pinned commit. It fails if upstream ships new public
       # functions with no docs at all, which is the leak this corpus exists to plug.
+      # The corpus is committed so consumers need no toolchain; this stops it going stale.
+      - name: Exported corpus matches the markdown
+        run: python tools/export_corpus.py --check
+
       - name: Coverage gap against upstream docs
         run: |
+          # Not `python ... | tee`: GitHub runs steps with `bash -e` and no pipefail, so the
+          # pipeline would take tee's exit status and silently swallow a --max-gap failure.
+          set -o pipefail
           python tools/coverage_gap.py --upstream .upstream \
             --covered-by reference/generic-functions.md \
             --max-gap 53 | tee gap.txt

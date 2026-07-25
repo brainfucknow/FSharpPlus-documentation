@@ -155,3 +155,21 @@ it.
 The applicative CEs are documented on other pages (`applicative-functors.fsx`,
 `abstraction-zipapplicative.fsx`), so a model retrieving "F#+ computation expressions" gets a page that
 silently omits half the CE surface. Merging this table into that page is the concrete fix.
+
+<!-- NEGATIVE TEST - temporary, removed in the next commit.
+     Proves the snippets job actually fails: (a) FS0044 blocks a renamed API,
+     (b) a wrong // val value fails at runtime. -->
+
+```fsharp verify name=negtest_obsolete
+open FSharpPlus
+
+let usesObsolete : int option = applicative' { return 1 }
+// val usesObsolete : int option = Some 1
+```
+
+```fsharp verify name=negtest_wrong_value
+open FSharpPlus
+
+let wrongValue : int list = map ((*) 2) [1; 2; 3]
+// val wrongValue : int list = [99; 99; 99]
+```

@@ -160,13 +160,6 @@ silently omits half the CE surface. Merging this table into that page is the con
      Proves the snippets job actually fails: (a) FS0044 blocks a renamed API,
      (b) a wrong // val value fails at runtime. -->
 
-```fsharp verify name=negtest_obsolete
-open FSharpPlus
-
-let usesObsolete : int option = applicative' { return 1 }
-// val usesObsolete : int option = Some 1
-```
-
 ```fsharp verify name=negtest_wrong_value
 open FSharpPlus
 

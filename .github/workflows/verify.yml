@@ -1,0 +1,203 @@
+name: verify
+
+# Every statement this repo makes should be checkable by a machine.
+#
+#   claims    - file:line citations, API presence/absence, snippet lint, corpus freshness, gap
+#   snippets  - F#+ code blocks tagged `verify`, compiled AND executed against the real package
+#   fsi       - the same snippets under dotnet fsi, an independent second target
+#   drift     - the claim checks against upstream master, non-blocking, so a stale pin surfaces
+#
+# The checks are an F# project (tools/Verify), so every job needs the SDK. That is deliberate: the
+# tooling is in the same language as the library it documents, and the claim data lives in
+# tools/Verify/Data.fs where the compiler checks its shape instead of a JSON parser doing so at
+# runtime. The cost is that the claim checks are no longer runnable from a bare container.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  schedule:
+    # Mondays 06:00 UTC - catches upstream drift without waiting for someone to push.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Matches upstream's global.json pin, so the compiler enforcing our gates is the one upstream uses.
+  DOTNET_VERSION: "8.0.x"
+
+jobs:
+  claims:
+    name: claims (citations, API claims, corpus, gap)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Read the upstream pin
+        id: pin
+        run: |
+          sha=$(grep -o '"sha"[[:space:]]*:[[:space:]]*"[0-9a-f]\{40\}"' upstream.json \
+                | grep -o '[0-9a-f]\{40\}')
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Check out upstream FSharpPlus at the pinned SHA
+        uses: actions/checkout@v4
+        with:
+          repository: fsprojects/FSharpPlus
+          ref: ${{ steps.pin.outputs.sha }}
+          path: .upstream
+
+      - name: Build the verification tool
+        run: dotnet build tools/Verify/Verify.fsproj -c Release --nologo
+
+      - name: Citations, API claims, snippet lint, corpus freshness
+        run: dotnet tools/Verify/bin/Release/net8.0/verify.dll claims --upstream .upstream
+
+      # Baseline is upstream's gap at the pinned commit. It fails if upstream ships new public
+      # functions with no docs at all, which is the leak this corpus exists to plug.
+      - name: Coverage gap against upstream docs
+        run: |
+          # Not `... | tee`: GitHub runs steps with `bash -e` and no pipefail, so the pipeline would
+          # take tee's exit status and silently swallow a --max-gap failure.
+          set -o pipefail
+          dotnet tools/Verify/bin/Release/net8.0/verify.dll gap --upstream .upstream \
+            --covered-by reference/generic-functions.md \
+            --max-gap 53 | tee gap.txt
+          {
+            echo "## Coverage gap"
+            echo ""
+            echo '```'
+            head -3 gap.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  snippets:
+    name: snippets (compile + execute)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('upstream.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Generate the snippet project
+        run: |
+          dotnet build tools/Verify/Verify.fsproj -c Release --nologo
+          dotnet tools/Verify/bin/Release/net8.0/verify.dll snippets --out build/verify
+
+      - name: Compile
+        run: dotnet build build/verify/verify.fsproj -c Release --nologo
+
+      - name: Execute value assertions
+        run: dotnet run --project build/verify/verify.fsproj -c Release --no-build
+
+      - name: Upload generated project on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-snippet-project
+          path: build/verify/
+          retention-days: 7
+
+  fsi:
+    name: snippets (dotnet fsi - second target)
+    runs-on: ubuntu-latest
+    # Separate job, not a step on `snippets`: the point is that these are two INDEPENDENT targets.
+    # Upstream PR #372 hit "Type constraint mismatch when applying the default type 'obj'" in a doc
+    # page that compiled fine as a project, so FSI and project compilation demonstrably disagree on
+    # SRTP-heavy code - and FSI is how a user actually pastes code.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('upstream.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Generate the FSI script
+        run: |
+          dotnet build tools/Verify/Verify.fsproj -c Release --nologo
+          dotnet tools/Verify/bin/Release/net8.0/verify.dll snippets --out build/verify --fsi
+
+      - name: Execute value assertions under FSI
+        run: dotnet fsi --nologo build/verify/verify.fsx
+
+      - name: Upload generated script on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-fsi-script
+          path: build/verify/verify.fsx
+          retention-days: 7
+
+  drift:
+    name: drift (upstream master, non-blocking)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Check out upstream master
+        uses: actions/checkout@v4
+        with:
+          repository: fsprojects/FSharpPlus
+          ref: master
+          path: .upstream
+
+      - name: Report how far master has moved from the pin
+        run: |
+          PINNED=$(grep -o '"sha"[[:space:]]*:[[:space:]]*"[0-9a-f]\{40\}"' upstream.json \
+                   | grep -o '[0-9a-f]\{40\}')
+          HEAD_SHA=$(git -C .upstream rev-parse HEAD)
+          {
+            echo "## Upstream drift"
+            echo ""
+            echo "| | commit |"
+            echo "|---|---|"
+            echo "| pinned | \`${PINNED:0:12}\` |"
+            echo "| master | \`${HEAD_SHA:0:12}\` |"
+            echo ""
+            if [ "$PINNED" = "$HEAD_SHA" ]; then
+              echo "Pin is current."
+            else
+              echo "Master has moved. Claim checks below run against master and are advisory:"
+              echo "line-anchored citations are *expected* to drift, so failures there mean"
+              echo "\"re-pin and re-check\", not \"the docs are wrong\"."
+              echo ""
+              echo "Absence failures are different - those mean upstream added something we"
+              echo "documented as non-existent, and the prose is now wrong regardless of the pin."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build the verification tool
+        run: dotnet build tools/Verify/Verify.fsproj -c Release --nologo
+
+      - name: Citations against master (advisory)
+        run: dotnet tools/Verify/bin/Release/net8.0/verify.dll citations --upstream .upstream --warn-only
+
+      - name: API presence/absence against master (advisory)
+        run: dotnet tools/Verify/bin/Release/net8.0/verify.dll absence --upstream .upstream --warn-only

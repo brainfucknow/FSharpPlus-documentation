@@ -55,3 +55,15 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Verification scratch space
+build/
+.upstream/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Verification tool build output
+tools/Verify/bin/
+tools/Verify/obj/

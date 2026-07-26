@@ -66,14 +66,20 @@ up. The new page states which four modules are `AutoOpen`, which are not, and gi
 Everything below was run locally against the base commit with .NET SDK 8.0.129 (matching the
 `global.json` pin), not asserted from reading:
 
-- **The tree at commits 1, 3, 4 and 5 builds clean**, as does the unpatched base, via
-  `dotnet build src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj -c Release`. Each of those trees was built
-  during development — the changes were made and compiled in that order, so those four states are
-  directly confirmed. Baseline build time is ~5 minutes; it is SRTP-heavy, as the size of the library
-  suggests.
-  **Commit 2's tree has not been built in isolation.** It is commit 3's confirmed-green tree minus only
-  the `WarningsAsErrors` property, so it is very likely fine, but "likely" is not "verified" and it is
-  the one gap in a strict bisectability claim.
+- **Every commit in the series builds, so the series is bisectable.** Each commit was checked out in
+  turn and built with `dotnet build src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj -c Release`:
+
+  | Commit | Subject | Result |
+  |---|---|---|
+  | `2548e56` | docs: compile index, abstractions and types pages | BUILD-OK |
+  | `42b81c9` | docs: use zapp2 instead of the obsolete applicative2' | BUILD-OK |
+  | `5c5a37f` | docs: fail the build on obsolete APIs and degraded generics | BUILD-OK |
+  | `cdddc0c` | docs: document the full computation expression surface | BUILD-OK |
+  | `6992d07` | docs: add a page explaining which open is required | BUILD-OK |
+
+  The unpatched base also builds clean. Baseline build time is ~5 minutes; the library is SRTP-heavy,
+  so a full rebuild per commit is slow but not prohibitive. (The commit hashes are from the local
+  replay used to generate these patches; `git am` will produce different hashes for the same content.)
 - **Patch 3 was validated by watching it fail first.** Applied before patch 2, the build failed with
   exactly one error:
   `docsrc/content/abstraction-zipapplicative.fsx(154,17): error FS0044: This construct is deprecated.

@@ -1,0 +1,158 @@
+From 6992d07a3cd1a1d89ea1bf94f05ac9e4585506e1 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 26 Jul 2026 04:36:35 +0000
+Subject: [PATCH 5/5] docs: add a page explaining which open is required
+
+Several feature areas need an open that is not obvious from the namespace layout, and optics
+are the worst case: Lens is a plain module under the FSharpPlus namespace, so opening the
+parent looks sufficient and is not. lens.fsx already carries an inline comment noting a second
+open is needed for length and traverse, which suggests this trips people up.
+
+The new page states which four modules are AutoOpen (Operators, GenericBuilders, Parsing,
+Memoization), which are not, and gives a lookup table from what you want to what to open. It
+also covers two consequences: the extension modules shadow their FSharp.Core namesakes so open
+order can change which function you get, and examples should carry their own opens because
+readers copy the snippet rather than the file.
+
+Registered in FSharpPlus.Docs so it is compiled, and linked from index.fsx so it is reachable.
+---
+ docsrc/content/index.fsx                   |   2 +
+ docsrc/content/required-opens.fsx          | 101 +++++++++++++++++++++
+ src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj |   3 +
+ 3 files changed, 106 insertions(+)
+ create mode 100644 docsrc/content/required-opens.fsx
+
+diff --git a/docsrc/content/index.fsx b/docsrc/content/index.fsx
+index 4ac722b..3791fbe 100644
+--- a/docsrc/content/index.fsx
++++ b/docsrc/content/index.fsx
+@@ -20,6 +20,8 @@ as possible.
+ 
+  * [Extensions](extensions.html) to core types, such as [`String.toLower`](reference/fsharpplus-string.html)
+ 
++ * [Which `open` do I need?](required-opens.html) - what arrives with `open FSharpPlus` and what needs its own `open`
++
+  * [Generic Functions and Operators](generic-doc.html) like `map`, which can be extended to support other types
+ 
+  * Generic and customizable [Computation Expressions](computation-expressions.html),
+diff --git a/docsrc/content/required-opens.fsx b/docsrc/content/required-opens.fsx
+new file mode 100644
+index 0000000..9ed159f
+--- /dev/null
++++ b/docsrc/content/required-opens.fsx
+@@ -0,0 +1,101 @@
++(*** hide ***)
++// This block of code is omitted in the generated HTML documentation. Use
++// it to define helpers that you do not want to show in the documentation.
++#r @"../../src/FSharpPlus/bin/Release/net8.0/FSharpPlus.dll"
++
++(**
++# Which `open` do I need?
++
++Most of F#+ arrives with a single `open FSharpPlus`, but not all of it, and the parts that need their
++own `open` are not obvious from the namespace layout. Optics in particular live in a module *under*
++`FSharpPlus`, which makes it look as though opening the parent namespace should be enough. It is not.
++
++## What `open FSharpPlus` gives you
++
++Four modules in the library are marked `[<AutoOpen>]`, so opening the `FSharpPlus` namespace brings
++their contents directly into scope:
++
++| Module | What it contains |
++|--------|------------------|
++| `Operators`       | the generic functions and operators - `map`, `bind`, `traverse`, `sequence`, `result`, and the operator set |
++| `GenericBuilders` | the computation expressions - `monad`, `applicative`, `zapp` and friends |
++| `Parsing`         | `parse`, `tryParse`, `parseArray`, `tryParseArray` and the `Parsed` active pattern |
++| `Memoization`     | `memoizeN` |
++
++The extension modules - `String`, `Option`, `Result`, `Seq`, `List`, `Map`, `Array`, `Task`, `Async`
++and the rest - are declared in the `FSharpPlus` namespace as `[<RequireQualifiedAccess>]` modules, so
++after `open FSharpPlus` they are reachable qualified, as `String.toLower`.
++
++## What needs its own `open`
++
++Everything else, including two things people reach for constantly:
++
++| Module or namespace | Why it is separate |
++|---------------------|--------------------|
++| `FSharpPlus.Data`             | a namespace of its own, holding the types |
++| `FSharpPlus.Lens`             | a plain module under `FSharpPlus`, **not** auto-opened |
++| `FSharpPlus.Math.Generic`     | a plain module in a separate namespace |
++| `FSharpPlus.Math.Applicative` | lifts arithmetic into applicatives |
++| `FSharpPlus.Control`          | the trait types, needed only when writing your own instances |
++
++## Reference
++
++| What you want | What to open |
++|---------------|--------------|
++| `map`, `bind`, `join`, `traverse`, `sequence`, `result`, `foldMap`, `length` | `open FSharpPlus` |
++| operators such as `<!>`, `<*>`, `>>=`, `>=>`, `++`, `<`&#124;`>`, `<.>` | `open FSharpPlus` |
++| `monad`, `monad'`, `monad.plus`, `applicative`, `zapp` | `open FSharpPlus` |
++| `tryParse`, `parse`, `memoizeN` | `open FSharpPlus` |
++| `String.toLower`, `Option.*`, `Result.*`, `Seq.*` and the other extension modules | `open FSharpPlus` |
++| `Reader`, `Writer`, `State`, `Cont`, `Validation`, `NonEmptyList`, `DList`, `ZipList`, `Identity` | `open FSharpPlus.Data` |
++| `Dual`, `Mult`, `First`, `Last`, `All`, `Any` | `open FSharpPlus.Data` |
++| `OptionT`, `ResultT`, `ReaderT`, `WriterT`, `StateT`, `SeqT`, `ListT`, `ContT` | `open FSharpPlus.Data` |
++| `view`, `preview`, `setl`, `over`, `_1`, `_2`, `_Some`, `_Ok`, `toListOf` | `open FSharpPlus.Lens` |
++| the optics operators `^.`, `^?`, `^..`, `.->`, `%->`, `<&>` | `open FSharpPlus.Lens` |
++| generic numeric operations over any numeric type | `open FSharpPlus.Math.Generic` |
++| arithmetic lifted into applicatives | `open FSharpPlus.Math.Applicative` |
++| writing your own instances - `Map.Invoke`, `Bind.Invoke` and similar | `open FSharpPlus.Control` |
++
++## Optics usually need two or three opens
++
++`open FSharpPlus.Lens` brings in the optics themselves, but any surrounding generic function still
++comes from `open FSharpPlus`, and monoid wrappers come from `open FSharpPlus.Data`. A lens example
++that also folds or traverses therefore needs all three:
++*)
++
++open FSharpPlus
++open FSharpPlus.Lens
++
++let firstOf : int = (1, "a") ^. _1
++
++// val firstOf : int = 1
++
++let updated : int * string = (1, "a") |> (_1 .-> 99)
++
++// val updated : int * string = (99, "a")
++
++(**
++By contrast `tryParse` comes from the auto-opened `Parsing` module, so `open FSharpPlus` alone is
++enough:
++*)
++
++let parsedInt : int option = tryParse "42"
++
++// val parsedInt : int option = Some 42
++
++let failedParse : int option = tryParse "nope"
++
++// val failedParse : int option = None
++
++(**
++## Two things worth knowing
++
++**The extension modules shadow the ones in FSharp.Core.** `String`, `Option`, `Result`, `List`, `Seq`,
++`Map` and `Array` all exist in the `FSharpPlus` namespace, so after `open FSharpPlus` a call such as
++`Option.map` may resolve to the F#+ one. That is normally what you want and is source compatible, but
++it does mean the order of your `open` declarations can change which function you get.
++
++**Prefer explicit opens in each example you write.** Anyone copying a snippet takes the snippet, not
++the whole file, so a snippet that silently depends on an `open` several hundred lines earlier will not
++compile where it lands.
++*)
+diff --git a/src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj b/src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj
+index 790a885..84c5c3b 100644
+--- a/src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj
++++ b/src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj
+@@ -57,6 +57,9 @@
+     <Compile Include="..\..\docsrc\content\tutorial.fsx">
+       <Link>Docs\%(FileName)%(Extension)</Link>	
+     </Compile>
++    <Compile Include="..\..\docsrc\content\required-opens.fsx">
++      <Link>Docs\%(FileName)%(Extension)</Link>
++    </Compile>
+     <Compile Include="..\..\docsrc\content\parsing.fsx">
+       <Link>Docs\%(FileName)%(Extension)</Link>
+     </Compile>

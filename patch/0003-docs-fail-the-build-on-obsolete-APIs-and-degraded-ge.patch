@@ -1,0 +1,41 @@
+From 5c5a37f7456b66026d6ec1e58ebdb04a0d16e24e Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 26 Jul 2026 04:36:35 +0000
+Subject: [PATCH 3/5] docs: fail the build on obsolete APIs and degraded
+ generics
+
+Two warnings matter more in documentation than in ordinary code, because a reader copies what
+they see:
+
+  FS0044  obsolete. ObsoleteAttribute is declared here with isError=false, so a renamed API
+          keeps compiling under its old name and a stale spelling can persist indefinitely.
+          The preceding commit fixed the one occurrence this catches today.
+
+  FS0064  this construct is less generic than indicated. Fires when a generic example quietly
+          becomes monomorphic, which still builds but demonstrates the wrong thing.
+
+Verified against the current content: FS0064 reports nothing, and FS0044 reported only the
+applicative2' use fixed in the previous commit.
+---
+ src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj b/src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj
+index 36bbab1..790a885 100644
+--- a/src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj
++++ b/src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj
+@@ -9,6 +9,14 @@
+     <Configurations>Debug;Release;Fable</Configurations>
+     <Platforms>AnyCPU</Platforms>
+     <TargetFramework>net8.0</TargetFramework>
++    <!-- The documentation is the API's public face, so two warnings are promoted to errors here.
++         FS0044 (obsolete) stops a renamed API from lingering in the docs: because ObsoleteAttribute
++         is declared with isError=false, both the old and new spelling compile, so a stale name can
++         survive indefinitely without anything failing.
++         FS0064 (this construct is less generic than indicated) stops a generic example from
++         silently degrading into a monomorphic one, which would teach the reader the wrong thing
++         while still building. -->
++    <WarningsAsErrors>FS0044;FS0064</WarningsAsErrors>
+   </PropertyGroup>
+ 
+   <ItemGroup>

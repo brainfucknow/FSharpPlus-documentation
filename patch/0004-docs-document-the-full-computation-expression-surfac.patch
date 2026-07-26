@@ -1,0 +1,132 @@
+From cdddc0ca157c24a79e06ea0685e3b73337206f2a Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 26 Jul 2026 04:36:35 +0000
+Subject: [PATCH 4/5] docs: document the full computation expression surface
+
+computation-expressions.fsx had no prose at all - no (** *) blocks, so the rendered page is a
+bare code listing - and it showed only monad, monad', monad.plus' and monad.fx. Absent were
+monad.plus, the alias spellings, and every applicative builder, so a reader looking up F#+
+computation expressions saw roughly half the surface.
+
+Adds:
+  - a table of the four monadic builders and the spellings that reach them, including
+    monad.plus.strict, and a note that the strict builders expose no flavour members so
+    monad'.plus does not exist
+  - guidance on lazy versus strict by target type
+  - a table of the sequential and zip applicative builders
+  - a note that applicative'/2'/3' are obsolete in favour of zapp/zapp2/zapp3, and that the
+    old spellings still compile because ObsoleteAttribute is declared with isError=false
+  - worked examples contrasting the applicative and zapp builders on the same two lists, and
+    a lazy additive monad.plus example
+
+The documented values were confirmed by executing them: sequentialCE is the cartesian product
+and zippedCE is the pointwise zip.
+---
+ docsrc/content/computation-expressions.fsx | 87 ++++++++++++++++++++++
+ 1 file changed, 87 insertions(+)
+
+diff --git a/docsrc/content/computation-expressions.fsx b/docsrc/content/computation-expressions.fsx
+index 92cb106..48c72b9 100644
+--- a/docsrc/content/computation-expressions.fsx
++++ b/docsrc/content/computation-expressions.fsx
+@@ -2,6 +2,56 @@
+ #r @"nuget: FSharpPlus"
+ open FSharpPlus
+ 
++(**
++Computation Expressions
++=======================
++
++F#+ provides a small set of computation expression builders that work over *any* type with the right
++instances. The names are the hardest part: one monadic builder is reachable by several spellings, and
++the lazy-versus-strict choice is a property of the target type rather than of the call site, so it
++cannot be inferred from where you are writing.
++
++### Monadic builders
++
++There are four distinct builders. These are the spellings that reach them:
++
++| Write | Also spelled | Lazy or strict | Additive |
++|-------|--------------|----------------|----------|
++| `monad`       | `monad.fx`                                     | lazy   | no  |
++| `monad'`      | `monad.strict`, `monad.fx'`, `monad.fx.strict`  | strict | no  |
++| `monad.plus`  | -                                              | lazy   | yes |
++| `monad.plus'` | `monad.plus.strict`                            | strict | yes |
++
++"Additive" means `Zero` is the type's empty value and `Combine` appends, so `return!` can be used
++repeatedly to accumulate alternatives.
++
++The strict builders expose no flavour members of their own, so `monad'.plus` does not exist. To get a
++strict additive expression, start from `monad` and write `monad.plus'`.
++
++Choosing between lazy and strict depends on whether the target type defers computation:
++
++| Target type | Use |
++|-------------|-----|
++| `Async<_>`, `Lazy<_>`, `seq<_>` - genuinely deferred | `monad` or `monad.fx` |
++| `option`, `Result`, `Choice` - eager, side-effecting | `monad'` |
++| `list<_>` and `seq<_>` used additively               | `monad.plus` or `monad.plus'` |
++
++### Applicative builders
++
++| Write | Layers | Effects are combined |
++|-------|--------|----------------------|
++| `applicative`, `applicative2`, `applicative3` | 1, 2, 3 | sequentially |
++| `zapp`, `zapp2`, `zapp3`                      | 1, 2, 3 | pointwise (zipped) |
++
++The numbered variants compose the effects of that many layered applicatives.
++
++> **Renamed in 1.9.1.** The ZipApplicative builders were previously called `applicative'`,
++> `applicative2'` and `applicative3'`. Those spellings still exist but are marked obsolete - use
++> `zapp`, `zapp2` and `zapp3` instead. Note that `ObsoleteAttribute` is declared here with
++> `isError=false`, so the old names still compile and produce only a warning; nothing will break if
++> you keep using them, but they are no longer the supported spelling.
++*)
++
+ let lazyValue = monad {
+     let! a = lazy (printfn "I'm lazy"; 2)
+     let! b = lazy (printfn "I'm lazy too"; 10)
+@@ -62,6 +112,43 @@ m.Add i
+         return -3 }
+ 
+ 
++(**
++Sequential and pointwise applicatives compared
++----------------------------------------------
++
++Both of the following compile and differ only in how the effects of the two lists are combined, so
++picking the wrong builder is a silent change in behaviour rather than a compiler error.
++*)
++
++let sequentialCE : int list = applicative {
++    let! x = [1; 2; 3]
++    and! y = [10; 20; 30]
++    return x + y }
++
++// val sequentialCE : int list = [11; 21; 31; 12; 22; 32; 13; 23; 33]
++
++let zippedCE : int list = zapp {
++    let! x = [1; 2; 3]
++    and! y = [10; 20; 30]
++    return x + y }
++
++// val zippedCE : int list = [11; 22; 33]
++
++(**
++A lazy additive expression
++--------------------------
++
++`monad.plus` is the lazy additive builder, the counterpart to the strict `monad.plus'` used above.
++*)
++
++let lazyPlus : seq<int> = monad.plus {
++    return! seq [1; 2]
++    return! seq [3] }
++
++let lazyPlusForced : int list = List.ofSeq lazyPlus
++
++// val lazyPlusForced : int list = [1; 2; 3]
++
+ (*
+ For more information about computation expressions you can read the paper : The F# Computation Expression Zoo
+ http://tomasp.net/academic/papers/computation-zoo/computation-zoo.pdf

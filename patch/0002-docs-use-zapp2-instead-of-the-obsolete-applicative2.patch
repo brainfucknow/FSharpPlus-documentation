@@ -1,0 +1,28 @@
+From 42b81c973eba0a00b17e0e63179631f692afd30b Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 26 Jul 2026 04:36:35 +0000
+Subject: [PATCH 2/5] docs: use zapp2 instead of the obsolete applicative2'
+
+applicative2' was renamed to zapp2 in 1.9.1 and is marked ObsoleteAttribute. Because that
+attribute is declared with isError=false the old spelling still compiles with only a warning,
+so this use survived the rename unnoticed.
+
+This is the only obsolete computation expression spelling remaining anywhere under
+docsrc/content.
+---
+ docsrc/content/abstraction-zipapplicative.fsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/docsrc/content/abstraction-zipapplicative.fsx b/docsrc/content/abstraction-zipapplicative.fsx
+index c4fbed3..ba13555 100644
+--- a/docsrc/content/abstraction-zipapplicative.fsx
++++ b/docsrc/content/abstraction-zipapplicative.fsx
+@@ -151,7 +151,7 @@ open FSharpPlus
+ 
+ // Validations
+ 
+-let validated = applicative2' {
++let validated = zapp2 {
+     let! x = async { return Ok 1 }
+     and! y = async { return Error ["Error1"] }
+     and! z = async { return Error ["Error2"] }

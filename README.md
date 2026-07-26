@@ -18,6 +18,7 @@ Checked against `fsprojects/FSharpPlus` at `master`, **1.9.1 (January 2026)**.
 | [`reference/generic-functions.md`](reference/generic-functions.md) | Verified examples for public functions with **no upstream example** — `sort`, `groupBy`, `item1`–`5`, `lift3`, `gets`, … |
 | [`AGENTS.md`](AGENTS.md) | Rules for coding agents working in F#+ codebases |
 | [`corpus/verified-snippets.jsonl`](corpus/verified-snippets.jsonl) | The verified corpus as JSONL — opens, code, expected type and value — for RAG, few-shot or fine-tuning |
+| [`patch/`](patch/) | A five-patch series applying these findings to `fsprojects/FSharpPlus` itself, built and validated against the pinned base |
 
 ## Three findings that change the plan
 

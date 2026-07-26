@@ -131,7 +131,7 @@ cross-library contamination risk the plan calls out.
 ## Verified examples
 
 Blocks tagged `verify` are compiled and **executed** in CI against F#+ 1.9.1 from NuGet, and the
-`// val` lines are asserted, not decorative. See [`../tools/extract_snippets.py`](../tools/extract_snippets.py).
+`// val` lines are asserted, not decorative. See [`../tools/Verify`](../tools/Verify).
 
 Map direction — `<!>` takes the function first, `|>>` takes the value first, same result:
 

@@ -114,6 +114,7 @@ let doubled : int list = map ((*) 2) [1; 2; 3]
 ```
 ````
 
-`// val name : Type = value` is enforced, not decorative. The extractor rejects a claim whose snippet
-does not annotate `let name : Type` — so the compiler checks the type — and the generated program
-asserts the value at runtime. Run `./tools/verify.sh` locally (`--no-dotnet` if you have no SDK).
+`// val name : Type = value` is enforced, not decorative. [`tools/Verify`](tools/Verify) rejects a claim
+whose snippet does not annotate `let name : Type` — so the compiler checks the type — and the generated
+program asserts the value at runtime, in two independent targets (project compilation and `dotnet fsi`).
+Run `./tools/verify.sh` locally; it needs a .NET SDK.

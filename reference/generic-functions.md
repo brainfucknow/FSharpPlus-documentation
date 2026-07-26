@@ -3,11 +3,11 @@
 > **Verification status: every snippet here is compiled and executed in CI.**
 > Blocks are tagged ```` ```fsharp verify ````, so their `// val` lines are asserted against
 > FSharpPlus 1.9.1 rather than being decorative. The gap analysis is reproducible via
-> [`../tools/coverage_gap.py`](../tools/coverage_gap.py).
+> the `gap` command of [`../tools/Verify`](../tools/Verify).
 
 ## Why this page exists
 
-`tools/coverage_gap.py` compares every named function in the `AutoOpen` `Operators` module against
+`verify gap` compares every named function in the `AutoOpen` `Operators` module against
 every mention in `docsrc/content/*.fsx` at the pinned commit:
 
 ```
@@ -186,5 +186,5 @@ Deliberately not attempted here, with reasons rather than silence:
 | `choosei` | Indexed functor; needs the `*i` indexed family covered together |
 | `liftM`, `getEmpty` | Legacy/internal-ish aliases — worth confirming they are intended public API before documenting |
 
-Run `tools/coverage_gap.py --upstream <path> --covered-by reference/generic-functions.md` for the live
+Run `verify gap --upstream <path> --covered-by reference/generic-functions.md` for the live
 split between covered and uncovered.

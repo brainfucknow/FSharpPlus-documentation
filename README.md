@@ -38,7 +38,7 @@ the compiler's reach. Adding three `<Compile>` lines is the cheapest correctness
 
 ## The measured coverage gap
 
-[`tools/coverage_gap.py`](tools/coverage_gap.py) computes the Step 3 work-list rather than curating it:
+The `gap` command of [`tools/Verify`](tools/Verify) computes the Step 3 work-list rather than curating it:
 
 ```
 public named functions in the AutoOpen Operators module: 192
@@ -56,8 +56,10 @@ the number cannot be inflated by writing about a function instead of demonstrati
 
 ## Verification
 
-Every statement here is meant to be checkable by a machine, and CI checks it. Three jobs, in
-[`.github/workflows/verify.yml`](.github/workflows/verify.yml):
+Every statement here is meant to be checkable by a machine, and CI checks it. Four jobs, in
+[`.github/workflows/verify.yml`](.github/workflows/verify.yml), all driven by
+[`tools/Verify`](tools/Verify) — an F# project, so the tooling is in the same language as the library
+it documents and its claim data is compile-checked rather than parsed from JSON:
 
 | Job | What it proves | Blocking |
 |---|---|---|
@@ -66,8 +68,20 @@ Every statement here is meant to be checkable by a machine, and CI checks it. Th
 | `fsi` | The same snippets executed under **`dotnet fsi`** — a second, independent target, because PR #372 showed FSI and project compilation disagree on SRTP-heavy code. | yes |
 | `drift` | The same claim checks against upstream `master`, weekly, advisory — so a stale pin surfaces as news rather than as a wrong table. | no |
 
-Run it locally with [`tools/verify.sh`](tools/verify.sh) (`--no-dotnet` if you have no SDK; the claim
-checks need only Python and a git clone).
+Run it all locally with [`tools/verify.sh`](tools/verify.sh), or drive the tool directly:
+
+```sh
+dotnet build tools/Verify/Verify.fsproj -c Release
+V="dotnet tools/Verify/bin/Release/net8.0/verify.dll"
+
+$V claims   --upstream .upstream          # citations, API claims, snippet lint, corpus freshness
+$V gap      --upstream .upstream --covered-by reference/generic-functions.md
+$V snippets --out build/verify --fsi      # generate both verification targets
+$V corpus   --check                       # is the committed JSONL current?
+```
+
+A .NET SDK is required for every check, including the claim checks — that is the cost of moving the
+tooling off Python.
 
 ### Running the checks locally in a cloud container
 
@@ -78,19 +92,24 @@ SDK and is reachable:
 
 ```sh
 apt-get update                     # refresh indexes first, or the .deb URLs 404
-apt-get install -y dotnet-sdk-10.0
+apt-get install -y dotnet-sdk-8.0  # matches upstream's global.json pin and CI
 ```
 
-Two consequences worth knowing:
+Three consequences worth knowing:
 
-- The generated project targets **net8.0** (upstream's TFM) but sets `RollForward=LatestMajor`, so it
-  runs on a newer-major runtime. Without that, the build succeeds and `dotnet run` dies with
+- **Prefer `dotnet-sdk-8.0`.** It matches upstream's `global.json` (`8.0.0`, `rollForward:
+  latestFeature`) and the version CI uses, so the compiler enforcing the `FS0044`/`FS0064` gates is the
+  same one everywhere. `dotnet-sdk-10.0` also works for *this* repo, but it cannot build upstream's own
+  projects — `global.json` rejects it with "Install the [8.0.0] .NET SDK".
+- Generated projects target **net8.0** but set `RollForward=LatestMajor`, so they run on a newer-major
+  runtime. Without that, the build succeeds and `dotnet run` dies with
   `Framework 'Microsoft.NETCore.App', version '8.0.0' not found`.
 - `nuget.org` *is* reachable, so `PackageReference` restore and `#r "nuget: FSharpPlus, 1.9.1"` both
   work — only the SDK download hosts are blocked.
 
 Verified end-to-end in such a container: `./tools/verify.sh` exits 0 with 43/43 assertions in both
-targets.
+targets. Building the upstream docs project additionally needs
+`git submodule update --init` for `external/FSharp.TypeProviders.SDK`.
 
 ### Why the citations are pinned
 
@@ -101,7 +120,7 @@ upstream *adds* something we documented as non-existent, the prose is wrong rega
 
 ### What a `verify` snippet guarantees
 
-`// val name : Type = value` is not a comment here. The extractor refuses a claim whose snippet does not
+`// val name : Type = value` is not a comment here. The tool refuses a claim whose snippet does not
 annotate `let name : Type`, so **the compiler checks the type** — that is the plan's guardrail against a
 snippet that compiles while silently demonstrating a monomorphic instantiation. The generated program
 then compares `sprintf "%A" name` against the documented value, so **the runtime checks the result**.

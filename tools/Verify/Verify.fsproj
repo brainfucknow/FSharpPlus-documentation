@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- The verification tooling runs in containers that may only ship a newer major runtime;
+         see the "Running the checks locally" section of README.md. -->
+    <RollForward>LatestMajor</RollForward>
+    <AssemblyName>verify</AssemblyName>
+    <RootNamespace>Verify</RootNamespace>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningLevel>5</WarningLevel>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Data.fs" />
+    <Compile Include="Core.fs" />
+    <Compile Include="Checks.fs" />
+    <Compile Include="Generate.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <!-- Deliberately no PackageReference. System.Text.Json is in-box for net8.0, and the claim data
+       lives in Data.fs as F# values rather than in JSON, so there is nothing to restore beyond
+       FSharp.Core. That keeps the claim checks runnable from a bare SDK. -->
+
+</Project>

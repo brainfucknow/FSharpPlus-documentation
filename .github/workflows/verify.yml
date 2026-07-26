@@ -2,13 +2,15 @@ name: verify
 
 # Every statement this repo makes should be checkable by a machine.
 #
-#   claims    - file:line citations and API presence/absence, against upstream at the pinned SHA
+#   claims    - file:line citations, API presence/absence, snippet lint, corpus freshness, gap
 #   snippets  - F#+ code blocks tagged `verify`, compiled AND executed against the real package
-#   drift     - the same claim checks against upstream master, non-blocking, so we learn when
-#               master moves away from the pin instead of finding out via a stale table
+#   fsi       - the same snippets under dotnet fsi, an independent second target
+#   drift     - the claim checks against upstream master, non-blocking, so a stale pin surfaces
 #
-# The snippets job is the compiler oracle. It is the reason CI exists here: the authoring
-# environment had no .NET SDK, so nothing containing F#+ code could be verified before this.
+# The checks are an F# project (tools/Verify), so every job needs the SDK. That is deliberate: the
+# tooling is in the same language as the library it documents, and the claim data lives in
+# tools/Verify/Data.fs where the compiler checks its shape instead of a JSON parser doing so at
+# runtime. The cost is that the claim checks are no longer runnable from a bare container.
 
 on:
   push:
@@ -22,25 +24,27 @@ on:
 permissions:
   contents: read
 
+env:
+  # Matches upstream's global.json pin, so the compiler enforcing our gates is the one upstream uses.
+  DOTNET_VERSION: "8.0.x"
+
 jobs:
   claims:
-    name: claims (citations + API presence/absence)
+    name: claims (citations, API claims, corpus, gap)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-dotnet@v4
         with:
-          python-version: "3.11"
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Read the upstream pin
         id: pin
         run: |
-          python - <<'EOF' >> "$GITHUB_OUTPUT"
-          import json
-          d = json.load(open("upstream.json"))
-          print("sha=" + d["sha"])
-          EOF
+          sha=$(grep -o '"sha"[[:space:]]*:[[:space:]]*"[0-9a-f]\{40\}"' upstream.json \
+                | grep -o '[0-9a-f]\{40\}')
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Check out upstream FSharpPlus at the pinned SHA
         uses: actions/checkout@v4
@@ -49,34 +53,27 @@ jobs:
           ref: ${{ steps.pin.outputs.sha }}
           path: .upstream
 
-      - name: Verify citations resolve and still say what we claim
-        run: python tools/check_citations.py --upstream .upstream
+      - name: Build the verification tool
+        run: dotnet build tools/Verify/Verify.fsproj -c Release --nologo
 
-      - name: Verify API presence/absence claims
-        run: python tools/check_absence.py --upstream .upstream
-
-      - name: Lint verifiable snippets (structure only, no compiler needed)
-        run: python tools/extract_snippets.py --lint-only
+      - name: Citations, API claims, snippet lint, corpus freshness
+        run: dotnet tools/Verify/bin/Release/net8.0/verify.dll claims --upstream .upstream
 
       # Baseline is upstream's gap at the pinned commit. It fails if upstream ships new public
       # functions with no docs at all, which is the leak this corpus exists to plug.
-      # The corpus is committed so consumers need no toolchain; this stops it going stale.
-      - name: Exported corpus matches the markdown
-        run: python tools/export_corpus.py --check
-
       - name: Coverage gap against upstream docs
         run: |
-          # Not `python ... | tee`: GitHub runs steps with `bash -e` and no pipefail, so the
-          # pipeline would take tee's exit status and silently swallow a --max-gap failure.
+          # Not `... | tee`: GitHub runs steps with `bash -e` and no pipefail, so the pipeline would
+          # take tee's exit status and silently swallow a --max-gap failure.
           set -o pipefail
-          python tools/coverage_gap.py --upstream .upstream \
+          dotnet tools/Verify/bin/Release/net8.0/verify.dll gap --upstream .upstream \
             --covered-by reference/generic-functions.md \
             --max-gap 53 | tee gap.txt
           {
             echo "## Coverage gap"
             echo ""
             echo '```'
-            head -4 gap.txt
+            head -3 gap.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -86,13 +83,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -102,7 +95,9 @@ jobs:
           restore-keys: nuget-${{ runner.os }}-
 
       - name: Generate the snippet project
-        run: python tools/extract_snippets.py --out build/verify
+        run: |
+          dotnet build tools/Verify/Verify.fsproj -c Release --nologo
+          dotnet tools/Verify/bin/Release/net8.0/verify.dll snippets --out build/verify
 
       - name: Compile
         run: dotnet build build/verify/verify.fsproj -c Release --nologo
@@ -121,20 +116,16 @@ jobs:
   fsi:
     name: snippets (dotnet fsi - second target)
     runs-on: ubuntu-latest
-    # Separate job, not a step on `snippets`: the point is that these are two INDEPENDENT
-    # targets. Upstream PR #372 hit "Type constraint mismatch when applying the default type
-    # 'obj'" in a doc page that compiled fine as a project, so FSI and project compilation
-    # demonstrably disagree on SRTP-heavy code - and FSI is how a user actually pastes code.
+    # Separate job, not a step on `snippets`: the point is that these are two INDEPENDENT targets.
+    # Upstream PR #372 hit "Type constraint mismatch when applying the default type 'obj'" in a doc
+    # page that compiled fine as a project, so FSI and project compilation demonstrably disagree on
+    # SRTP-heavy code - and FSI is how a user actually pastes code.
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -144,7 +135,9 @@ jobs:
           restore-keys: nuget-${{ runner.os }}-
 
       - name: Generate the FSI script
-        run: python tools/extract_snippets.py --out build/verify --fsi
+        run: |
+          dotnet build tools/Verify/Verify.fsproj -c Release --nologo
+          dotnet tools/Verify/bin/Release/net8.0/verify.dll snippets --out build/verify --fsi
 
       - name: Execute value assertions under FSI
         run: dotnet fsi --nologo build/verify/verify.fsx
@@ -160,14 +153,13 @@ jobs:
   drift:
     name: drift (upstream master, non-blocking)
     runs-on: ubuntu-latest
-    # Only worth running where a stale pin is actionable news, not on every branch push.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-dotnet@v4
         with:
-          python-version: "3.11"
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Check out upstream master
         uses: actions/checkout@v4
@@ -178,7 +170,8 @@ jobs:
 
       - name: Report how far master has moved from the pin
         run: |
-          PINNED=$(python -c "import json;print(json.load(open('upstream.json'))['sha'])")
+          PINNED=$(grep -o '"sha"[[:space:]]*:[[:space:]]*"[0-9a-f]\{40\}"' upstream.json \
+                   | grep -o '[0-9a-f]\{40\}')
           HEAD_SHA=$(git -C .upstream rev-parse HEAD)
           {
             echo "## Upstream drift"
@@ -200,8 +193,11 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Build the verification tool
+        run: dotnet build tools/Verify/Verify.fsproj -c Release --nologo
+
       - name: Citations against master (advisory)
-        run: python tools/check_citations.py --upstream .upstream --warn-only
+        run: dotnet tools/Verify/bin/Release/net8.0/verify.dll citations --upstream .upstream --warn-only
 
       - name: API presence/absence against master (advisory)
-        run: python tools/check_absence.py --upstream .upstream --warn-only
+        run: dotnet tools/Verify/bin/Release/net8.0/verify.dll absence --upstream .upstream --warn-only

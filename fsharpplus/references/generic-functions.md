@@ -38,5 +38,4 @@ These public generic names are absent from the 1.9.1 `FSharpPlus.Operators` API:
 | `pure` | `result` (the internal builder helper `pur` is not the public return function) |
 | `forM` | `traverse` with arguments in F#+ order |
 | `liftA2` | `lift2` |
-
-Do **not** list `mapM` as absent: F#+ does expose it; prefer `traverse` when the required behavior is traversal through an applicative.
+| `mapM` | `traverse`; the only `mapM` in 1.9.1 is the module function `SeqT.mapM` |

@@ -40,3 +40,38 @@ The member name and shape are the SRTP protocol: changing arity, order, or tuple
 - Annotate the source and expected result at the generic call.
 - Reduce to one operation (`map`, then `result`/`(<*>)`, then `bind`, then `toSeq`) and compile after each addition.
 - For `traverse`, implement the documented `Traverse (source, mapping)` shape rather than assuming `Map` plus `ToSeq` preserves the custom container.
+- Call `map`, `lift2`, and `bind` from `FSharpPlus` inside an instance body. `Map.Invoke` and the other dispatchers live in `FSharpPlus.Control`, which `open FSharpPlus` does not bring into scope.
+
+## Traverse on a recursive type
+
+`Traverse` must be `static member inline` because the applicative is a type parameter. Rebuild the structure with `map` for leaves and `lift2` for nodes:
+
+```fsharp
+#r "nuget: FSharpPlus, 1.9.1"
+open FSharpPlus
+
+type Tree<'T> =
+    | Leaf of 'T
+    | Node of Tree<'T> * Tree<'T>
+    static member Map (source: Tree<'T>, mapping: 'T -> 'U) : Tree<'U> =
+        match source with
+        | Leaf value -> Leaf (mapping value)
+        | Node (left, right) -> Node (Tree.Map (left, mapping), Tree.Map (right, mapping))
+    static member inline Traverse (source: Tree<'T>, mapping: 'T -> '``Functor<'U>``) : '``Functor<Tree<'U>>`` =
+        let rec go tree =
+            match tree with
+            | Leaf value -> map Leaf (mapping value)
+            | Node (left, right) -> lift2 (fun l r -> Node (l, r)) (go left) (go right)
+        go source
+
+let positive x = if x > 0 then Some x else None
+let mapped: Tree<int> = map ((+) 1) (Node (Leaf 1, Leaf 2))
+let allPositive: Tree<int> option = traverse positive (Node (Leaf 1, Leaf 2))
+let onePositive: Tree<int> option = traverse positive (Node (Leaf 1, Leaf -2))
+printfn "%A" mapped
+// expect: Node (Leaf 2, Leaf 3)
+printfn "%A" allPositive
+// expect: Some (Node (Leaf 1, Leaf 2))
+printfn "%A" onePositive
+// expect: None
+```

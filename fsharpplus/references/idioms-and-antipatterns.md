@@ -28,16 +28,23 @@ let roundTrip: Result<int, string> = Error "x" |> Validation.ofResult |> Validat
 
 ## NonEmptyList and DList
 
-Use `NonEmptyList` when emptiness would be invalid and consumers need a guaranteed head; `singleton` and `ofList` are the direct constructors (`ofList` returns an option). Use `DList` when repeatedly appending lists before one final conversion, avoiding repeated left-list traversal.
+Use `NonEmptyList` when emptiness would be invalid and consumers need a guaranteed head. `singleton` always succeeds; `ofList` throws `ArgumentException` on an empty list, and `tryOfList` is the option-returning form. Use `DList` when repeatedly appending lists before one final conversion, avoiding repeated left-list traversal. `DList.append left right` keeps `left` first.
 
 ```fsharp
 #r "nuget: FSharpPlus, 1.9.1"
 open FSharpPlus
 open FSharpPlus.Data
-let one = NonEmptyList.singleton 1
-let maybeMany = NonEmptyList.ofList [1; 2]
-let built = DList.singleton 1 |> DList.append (DList.singleton 2)
-let materialized = DList.toList built
+let one: NonEmptyList<int> = NonEmptyList.singleton 1
+let some: NonEmptyList<int> option = NonEmptyList.tryOfList [1; 2]
+let none: NonEmptyList<int> option = NonEmptyList.tryOfList []
+let unchecked: NonEmptyList<int> = NonEmptyList.ofList [3]
+let built: DList<int> = DList.append (DList.singleton 1) (DList.singleton 2)
+printfn "%A" none
+// expect: None
+printfn "%A" (NonEmptyList.toList unchecked)
+// expect: [3]
+printfn "%A" (DList.toList built)
+// expect: [1; 2]
 ```
 
 ## Lens conventions

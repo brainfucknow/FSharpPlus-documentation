@@ -135,3 +135,40 @@ The later `open Other` selects its monomorphic operator; this is name shadowing,
 #r "nuget: FSharpPlus, 1.9.1"
 let x: int option = FSharpPlus.Operators.(<*>) (Some ((+) 1)) (Some 2)
 ```
+
+## 6. Annotated `let!` pattern inside a transformer CE
+
+**Intentionally failing:**
+
+```fsharp
+#r "nuget: FSharpPlus, 1.9.1"
+open FSharpPlus
+open FSharpPlus.Data
+type Config = { BaseUrl: string }
+let url (path: string) : ReaderT<Config, Result<string, string>> = monad {
+    let! (config: Config) = ask
+    return config.BaseUrl + "/" + path }
+```
+
+Captured text:
+
+```text
+error FS0071: Type constraint mismatch when applying the default type 'obj' for a type inference variable. No overloads match for method 'op_GreaterGreaterEquals'.
+Known return type: Result<string,string>
+Known type parameters: < obj , (Config -> Result<string,string>) >
+```
+
+The pattern annotation fixes the bound value but leaves the monad of `ask` unresolved, so `>>=` defaults to `obj`. The return annotation on `url` already carries the whole stack; remove the pattern annotation and let the builder infer from it.
+
+```fsharp
+#r "nuget: FSharpPlus, 1.9.1"
+open FSharpPlus
+open FSharpPlus.Data
+type Config = { BaseUrl: string }
+let url (path: string) : ReaderT<Config, Result<string, string>> = monad {
+    let! config = ask
+    return config.BaseUrl + "/" + path }
+let outcome: Result<string, string> = ReaderT.run (url "users") { BaseUrl = "https://example.com" }
+printfn "%A" outcome
+// expect: Ok "https://example.com/users"
+```

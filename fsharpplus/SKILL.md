@@ -21,5 +21,5 @@ F#+ provides generic programming over F# types through statically resolved type 
 1. Always compile-verify F#+ code before presenting it; SRTP errors only appear at compile time.
 2. `open FSharpPlus` first; add `open FSharpPlus.Data` only for its types (`NonEmptyList`, `Validation`, `DList`, and transformers), and `open FSharpPlus.Lens` only for optics.
 3. Prefer a concrete module function such as `List.map` or `Option.bind` in monomorphic code; use the generic form only for actually generic code or an F#+ type.
-4. When generic resolution fails, add an explicit argument or result type annotation at the call site before trying anything else.
+4. When generic resolution fails, annotate the binding's result type or the function's return type before trying anything else. Do not annotate `let!` patterns inside `monad`; that breaks inference in transformer stacks (see `references/srtp-errors.md`, case 6).
 5. Do not invent functions. Check `references/generic-functions.md`, then the [API reference](https://fsprojects.github.io/FSharpPlus/reference/index.html); if still absent, it does not exist.

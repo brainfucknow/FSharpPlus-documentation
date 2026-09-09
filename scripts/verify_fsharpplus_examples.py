@@ -4,7 +4,9 @@
 Fenced examples run in isolation. The one-line examples in the generic-function
 lookup run together because each is a complete top-level binding. Blocks marked
 "Intentionally failing" must fail, and their FS diagnostic must match the error
-recorded immediately below the block.
+recorded immediately below the block. A line `// expect: text` inside a block
+requires `text` to appear in the script's output, so prose claims about values
+are checked, not only compilation.
 """
 
 from __future__ import annotations
@@ -19,6 +21,7 @@ from pathlib import Path
 PACKAGE_REFERENCE = '#r "nuget: FSharpPlus, 1.9.1"\n'
 FENCE = re.compile(r"```fsharp\n(.*?)```", re.DOTALL)
 ERROR = re.compile(r"error (FS\d{4})")
+EXPECT = re.compile(r"^\s*// expect: (.*\S)\s*$", re.MULTILINE)
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "fsharpplus"
 
@@ -44,8 +47,13 @@ def run_fsi(dotnet: str, source: str, label: str, should_fail: bool, error: str 
     passed = result.returncode != 0 if should_fail else result.returncode == 0
     if error is not None:
         passed = passed and error in ERROR.findall(output)
+    expected_lines = EXPECT.findall(source)
+    missing = [line for line in expected_lines if line not in output]
+    passed = passed and not missing
     status = "PASS" if passed else "FAIL"
     expectation = f"expected {error}" if error else "expected failure" if should_fail else "expected success"
+    if expected_lines:
+        expectation += f", {len(expected_lines) - len(missing)}/{len(expected_lines)} expected lines"
     print(f"{status}: {label} ({expectation}, exit {result.returncode})")
     if not passed:
         print(output.rstrip(), file=sys.stderr)

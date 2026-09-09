@@ -9,6 +9,7 @@ All snippets assume the package reference shown in `generic-functions.md`.
 | `FSharpPlus.Lens` | `view`, `setl`, `over`, and standard optics. Open only for optics. |
 | `FSharpPlus.Math` | Generic numeric helpers. Open only for generic numeric code. |
 | `FSharpPlus.Operators` | Definitions underlying the names re-exported by `FSharpPlus`; qualify it when a narrow import is preferable. |
+| `FSharpPlus.Control` | The dispatcher types (`Map`, `Bind`, `Traverse`, ...) with their `Invoke` members. `Map.Invoke` and friends are not visible after `open FSharpPlus` alone. Inside an instance implementation prefer the generic functions `map`, `lift2`, and `bind` from `FSharpPlus`; open `FSharpPlus.Control` only when calling a dispatcher directly. |
 
 ## What the open changes
 

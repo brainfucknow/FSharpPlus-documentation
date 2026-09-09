@@ -172,3 +172,43 @@ let outcome: Result<string, string> = ReaderT.run (url "users") { BaseUrl = "htt
 printfn "%A" outcome
 // expect: Ok "https://example.com/users"
 ```
+
+## 7. `monad` over a custom type without `Delay`
+
+**Intentionally failing:**
+
+```fsharp
+#r "nuget: FSharpPlus, 1.9.1"
+open FSharpPlus
+type Box<'T> = Box of 'T with
+    static member Return (value: 'T) : Box<'T> = Box value
+    static member (>>=) (Box value: Box<'T>, binder: 'T -> Box<'U>) : Box<'U> = binder value
+let summed: Box<int> = monad {
+    let! x = Box 1
+    return x + 1 }
+```
+
+Captured text:
+
+```text
+error FS0073: internal error: Undefined or unsolved type variable: ^_?106199
+```
+
+The location is reported as `unknown(1,1)`, which makes this hard to trace. The delayed `monad` builder wraps the body in `Delay`, and with only an annotated `(>>=)` available the fallback leaves a type variable unsolved. Add `Delay` to the type, or use the strict builder `monad'`, which does not delay.
+
+```fsharp
+#r "nuget: FSharpPlus, 1.9.1"
+open FSharpPlus
+type Box<'T> = Box of 'T with
+    static member Return (value: 'T) : Box<'T> = Box value
+    static member (>>=) (Box value: Box<'T>, binder: 'T -> Box<'U>) : Box<'U> = binder value
+    static member Delay (body: unit -> Box<'T>) : Box<'T> = body ()
+let delayed: Box<int> = monad {
+    let! x = Box 1
+    return x + 1 }
+let strict: Box<int> = monad' {
+    let! x = Box 1
+    return x + 1 }
+printfn "%A %A" delayed strict
+// expect: Box 2 Box 2
+```

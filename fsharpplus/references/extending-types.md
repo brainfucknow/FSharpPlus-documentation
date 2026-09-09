@@ -14,6 +14,7 @@ type Box<'T> = Box of 'T with
         Box (mapping value)
     static member (>>=) (Box value: Box<'T>, binder: 'T -> Box<'U>) : Box<'U> =
         binder value
+    static member Delay (body: unit -> Box<'T>) : Box<'T> = body ()
     static member ToSeq (Box value: Box<'T>) : seq<'T> = Seq.singleton value
 
 let mapped: Box<int> = map ((+) 1) (Box 1)
@@ -21,6 +22,12 @@ let returned: Box<int> = result 2
 let applied: Box<int> = Box ((+) 1) <*> Box 2
 let bound: Box<int> = bind (fun x -> Box (x * 2)) (Box 3)
 let elements: seq<int> = toSeq (Box 4)
+let summed: Box<int> = monad {
+    let! x = Box 1
+    let! y = Box 2
+    return x + y }
+printfn "%A" summed
+// expect: Box 3
 ```
 
 ## Steps and exact shapes
@@ -28,7 +35,8 @@ let elements: seq<int> = toSeq (Box 4)
 1. Functor support is `static member Map (Box value: Box<'T>, mapping: 'T -> 'U) : Box<'U>`. The source comes before the mapping inside a tuple.
 2. Applicative return is `static member Return (value: 'T) : Box<'T>` and application is `static member (<*>) (Box mapping: Box<'T -> 'U>, Box value: Box<'T>) : Box<'U>`.
 3. Monad support is `static member (>>=) (Box value: Box<'T>, binder: 'T -> Box<'U>) : Box<'U>`.
-4. Minimal foldable conversion is `static member ToSeq (Box value: Box<'T>) : seq<'T>`; generic folds can fall back through it.
+4. The delayed `monad` builder also needs `static member Delay (body: unit -> Box<'T>) : Box<'T>`. Without it, a fully annotated `(>>=)` makes `monad { }` over the type fail with compiler internal error FS0073 (see `srtp-errors.md`, case 7); `monad'` and `monad.strict` do not call `Delay`.
+5. Minimal foldable conversion is `static member ToSeq (Box value: Box<'T>) : seq<'T>`; generic folds can fall back through it.
 
 The member name and shape are the SRTP protocol: changing arity, order, or tupled form prevents resolution even when the implementation looks equivalent.
 

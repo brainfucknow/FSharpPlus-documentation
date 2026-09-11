@@ -1,0 +1,50 @@
+{
+  "skill": "fsharpplus",
+  "evals": [
+    {
+      "id": "extend-tree",
+      "prompt": "In F# with FSharpPlus 1.9.1, define a binary tree type `Tree<'T> = Leaf of 'T | Node of Tree<'T> * Tree<'T>` and make it work with F#+'s generic `map` and `traverse`, so that `map ((+) 1) tree : Tree<int>` and `traverse (fun x -> if x > 0 then Some x else None) tree : Tree<int> option` both compile and behave correctly. The script must start with `#r \"nuget: FSharpPlus, 1.9.1\"`, define the type with whatever static members are needed, and end with `printfn \"%A\"` lines showing map and traverse applied to `Node (Leaf 1, Node (Leaf 2, Leaf 3))` and traverse applied to `Node (Leaf 1, Leaf -2)`.",
+      "files": [],
+      "checks": [
+        "Node (Leaf 2, Node (Leaf 3, Leaf 4))",
+        "Some (Node (Leaf 1, Node (Leaf 2, Leaf 3)))",
+        "None"
+      ]
+    },
+    {
+      "id": "validation-accumulate",
+      "prompt": "The F# script `validation-short-circuit.fsx` in the current directory (FSharpPlus 1.9.1) does not do what the author wants. They want both validation errors accumulated, so the program prints a failure containing both \"empty name\" and \"bad age\", and they want the final value converted to a plain `Result<string * int, string list>` before printing. Fix it. The corrected script must start with `#r \"nuget: FSharpPlus, 1.9.1\"` and end with a `printfn \"%A\"` of the Result value.",
+      "files": ["validation-short-circuit.fsx"],
+      "checks": [
+        "Error [\"empty name\"; \"bad age\"]"
+      ]
+    },
+    {
+      "id": "readert-stack",
+      "prompt": "Using FSharpPlus 1.9.1, write an F# script that uses the `ReaderT` monad transformer over `Result<_, string>`. Define `type Config = { BaseUrl: string }`. Define `buildUrl (path: string)` in that stack: it reads the config and returns `Error \"empty path\"` when the path is empty, otherwise `Ok (config.BaseUrl + \"/\" + path)`. Define `both` using the `monad` computation expression that calls `buildUrl \"users\"` and `buildUrl \"orders\"` and returns the tuple. Run `both` and also `buildUrl \"\"` against `{ BaseUrl = \"https://example.com\" }` and print both results with `printfn \"%A\"`. The script must start with `#r \"nuget: FSharpPlus, 1.9.1\"`.",
+      "files": [],
+      "checks": [
+        "Ok (\"https://example.com/users\", \"https://example.com/orders\")",
+        "Error \"empty path\""
+      ]
+    },
+    {
+      "id": "fix-value-restriction",
+      "prompt": "This F# snippet using FSharpPlus 1.9.1 fails with FS0030 (value restriction):\n\n```fsharp\n#r \"nuget: FSharpPlus, 1.9.1\"\nopen FSharpPlus\nlet increment = map ((+) 1)\nlet a = increment [1; 2]\nlet b = increment (Some 5)\nprintfn \"%A %A\" a b\n```\n\nFix it so that `increment` still works on both a list and an option, and the script prints `[2; 3] Some 6`. The script must start with `#r \"nuget: FSharpPlus, 1.9.1\"`.",
+      "files": [],
+      "checks": [
+        "[2; 3] Some 6"
+      ]
+    },
+    {
+      "id": "custom-box-monad",
+      "prompt": "Using FSharpPlus 1.9.1, define a single-case wrapper `type Box<'T> = Box of 'T` and give it the static members F#+ needs so that all of the following compile and run: `map ((+) 1) (Box 1)`, `result 2 : Box<int>`, `Box ((+) 1) <*> Box 2`, `bind (fun x -> Box (x * 2)) (Box 3)`, and a `monad { let! x = Box 1 in let! y = Box 2 in return x + y }` block typed as `Box<int>`. Print each value with `printfn \"%A\"` in that order. The script must start with `#r \"nuget: FSharpPlus, 1.9.1\"`.",
+      "files": [],
+      "checks": [
+        "Box 2",
+        "Box 3",
+        "Box 6"
+      ]
+    }
+  ]
+}

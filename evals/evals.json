@@ -50,7 +50,7 @@
     },
     {
       "id": "optional-code-action",
-      "prompt": "Repair a self-contained FSharpPlus 1.9.1 optional workflow that locates a document reference, resolves a destination, rejects an existing destination with guard, and constructs an action. Include a counter inside resolution. Print labeled computed results for a valid request, missing reference, existing target, and the number of resolution calls proving a missing reference skipped the later step. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "prompt": "Repair a self-contained FSharpPlus 1.9.1 optional workflow that locates a document reference, resolves a destination, rejects an existing destination with guard, and constructs an action. Include a counter inside resolution. Print labeled computed results for a valid request, missing reference, existing target, and the number of resolution calls proving a missing reference skipped the later step. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure. Use these exact output labels: `valid=`, `missing=`, `existing=`, and `calls=`.",
       "files": [],
       "checks": [
         "valid=Some",
@@ -61,7 +61,7 @@
     },
     {
       "id": "mapping-interop",
-      "prompt": "Write a self-contained FSharpPlus 1.9.1 script maintaining code that uses the FSharpPlus mapping operator despite a conflicting local map name. Qualify or narrowly import ownership. Map [2;4] to doubled values, show the equivalent List.map result, and use a reusable inline generic helper on Some 8 and None. Print labeled computed values. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "prompt": "Write a self-contained FSharpPlus 1.9.1 script maintaining code that uses the FSharpPlus mapping operator despite a conflicting local map name. Qualify or narrowly import ownership. Map [2;4] to doubled values, show the equivalent List.map result, and use a reusable inline generic helper on Some 8 and None. Print labeled computed values. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure. Use these exact output labels: `mapped=`, `equal=`, `optional=`, and `missing=`.",
       "files": [],
       "checks": [
         "mapped=[4; 8]",
@@ -72,7 +72,7 @@
     },
     {
       "id": "state-repository",
-      "prompt": "Implement a FSharpPlus 1.9.1 State repository for inventory records with a map and next key. Compose allocation of two records, update only the second, and missing lookup, then explicitly run it. Print labeled IDs, final records/next key, and unchanged initial state. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "prompt": "Implement a FSharpPlus 1.9.1 State repository for inventory records with a map and next key. Compose allocation of two records, update only the second, and missing lookup, then explicitly run it. Print labeled IDs, final records/next key, and unchanged initial state. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure. Use these exact output labels: `ids=`, `records=`, `next=`, `missing=`, and `initial=`.",
       "files": [],
       "checks": [
         "ids=(40, 41)",
@@ -83,7 +83,7 @@
     },
     {
       "id": "ast-optics",
-      "prompt": "Using FSharpPlus 1.9.1 custom lenses, transform a nested annotation record in a syntax node. Exercise view, setl, and over. Print labeled output proving the target changed, source-span and sibling survived, and setting the same value twice is stable. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "prompt": "Using FSharpPlus 1.9.1 custom lenses, transform a nested annotation record in a syntax node. Exercise view, setl, and over. Print labeled output proving the target changed, source-span and sibling survived, and setting the same value twice is stable. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure. Use these exact output labels: `target=`, `sibling=`, `span=`, and `repeated=`.",
       "files": [],
       "checks": [
         "target=reviewed",
@@ -94,7 +94,7 @@
     },
     {
       "id": "validation-semantics",
-      "prompt": "Repair independent FSharpPlus 1.9.1 validations so both diagnostics are retained in stable order and success constructs a value. Separately demonstrate dependent Result binding skips its later binder using a counter inside it. Print computed labeled results. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "prompt": "Repair independent FSharpPlus 1.9.1 validations so both diagnostics are retained in stable order and success constructs a value. Separately demonstrate dependent Result binding skips its later binder using a counter inside it. Print computed labeled results. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure. Use these exact output labels: `errors=`, `success=`, and `dependentCalls=`.",
       "files": [],
       "checks": [
         "errors=Error [\"bad code\"; \"bad quantity\"]",
@@ -104,7 +104,7 @@
     },
     {
       "id": "evented-composition",
-      "prompt": "Define a value-plus-events type with FSharpPlus 1.9.1 members needed for generic map, bind, lift2, and traversing a list of operations. Print computed labeled final values and event lists proving map preserves events and composition accumulates left-to-right. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "prompt": "Define a value-plus-events type with FSharpPlus 1.9.1 members needed for generic map, bind, lift2, and traversing a list of operations. Print computed labeled final values and event lists proving map preserves events and composition accumulates left-to-right. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure. Use these exact output labels: `mapValue=`, `mapEvents=`, `bindValue=`, `bindEvents=`, `liftValue=`, `liftEvents=`, `traverseValues=`, and `traverseEvents=`.",
       "files": [],
       "checks": [
         "mapEvents=[\"read\"]",
@@ -115,7 +115,7 @@
     },
     {
       "id": "nonempty-traversal",
-      "prompt": "Define a custom private-case non-empty container for FSharpPlus 1.9.1 with controlled list construction, Map, and shape-preserving Traverse. Demonstrate Option and Result effects. Print labeled rejected empty construction, successful retained values, and failing-element result. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "prompt": "Define a custom private-case non-empty container for FSharpPlus 1.9.1 with controlled list construction, Map, and shape-preserving Traverse. Demonstrate Option and Result effects. Print labeled rejected empty construction, successful retained values, and failing-element result. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure. Use these exact output labels: `empty=`, `success=`, `failure=`, and `result=`.",
       "files": [],
       "checks": [
         "empty=None",
@@ -126,7 +126,7 @@
     },
     {
       "id": "codec-roundtrip",
-      "prompt": "Complete a self-contained FSharpPlus 1.9.1 in-memory codec for a two-field Book using ReaderT over Result for decoding and Const for encoding. Compose and execute both halves. Print labeled valid decode, missing and invalid errors, complete encoding, and round-trip result. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "prompt": "Complete a self-contained FSharpPlus 1.9.1 in-memory codec for a two-field Book using ReaderT over Result for decoding and Const for encoding. Compose and execute both halves. Print labeled valid decode, missing and invalid errors, complete encoding, and round-trip result. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure. Use these exact output labels: `valid=`, `missing=`, `invalid=`, `encoded=`, and `roundtrip=`.",
       "files": [],
       "checks": [
         "missing=Error",
@@ -137,7 +137,7 @@
     },
     {
       "id": "async-optional-routing",
-      "prompt": "Fix self-contained FSharpPlus 1.9.1 OptionT-over-Async handlers so rejected routes do not execute their response step. Add ordered fallback and an explicit execution boundary. Use deterministic traces inside async operations and print labeled match, fallback trace, and all-unmatched result. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "prompt": "Fix self-contained FSharpPlus 1.9.1 OptionT-over-Async handlers so rejected routes do not execute their response step. Add ordered fallback and an explicit execution boundary. Use deterministic traces inside async operations and print labeled match, fallback trace, and all-unmatched result. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure. Use these exact output labels: `match=`, `fallback=`, `trace=`, and `all=`; the fallback trace must include the literal `run:second`.",
       "files": [],
       "checks": [
         "match=Some",

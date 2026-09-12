@@ -14,7 +14,9 @@
     {
       "id": "validation-accumulate",
       "prompt": "The F# script `validation-short-circuit.fsx` in the current directory (FSharpPlus 1.9.1) does not do what the author wants. They want both validation errors accumulated, so the program prints a failure containing both \"empty name\" and \"bad age\", and they want the final value converted to a plain `Result<string * int, string list>` before printing. Fix it. The corrected script must start with `#r \"nuget: FSharpPlus, 1.9.1\"` and end with a `printfn \"%A\"` of the Result value.",
-      "files": ["validation-short-circuit.fsx"],
+      "files": [
+        "validation-short-circuit.fsx"
+      ],
       "checks": [
         "Error [\"empty name\"; \"bad age\"]"
       ]
@@ -44,6 +46,104 @@
         "Box 2",
         "Box 3",
         "Box 6"
+      ]
+    },
+    {
+      "id": "optional-code-action",
+      "prompt": "Repair a self-contained FSharpPlus 1.9.1 optional workflow that locates a document reference, resolves a destination, rejects an existing destination with guard, and constructs an action. Include a counter inside resolution. Print labeled computed results for a valid request, missing reference, existing target, and the number of resolution calls proving a missing reference skipped the later step. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "files": [],
+      "checks": [
+        "valid=Some",
+        "missing=None",
+        "existing=None",
+        "calls=2"
+      ]
+    },
+    {
+      "id": "mapping-interop",
+      "prompt": "Write a self-contained FSharpPlus 1.9.1 script maintaining code that uses the FSharpPlus mapping operator despite a conflicting local map name. Qualify or narrowly import ownership. Map [2;4] to doubled values, show the equivalent List.map result, and use a reusable inline generic helper on Some 8 and None. Print labeled computed values. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "files": [],
+      "checks": [
+        "mapped=[4; 8]",
+        "equal=true",
+        "optional=Some 9",
+        "missing=None"
+      ]
+    },
+    {
+      "id": "state-repository",
+      "prompt": "Implement a FSharpPlus 1.9.1 State repository for inventory records with a map and next key. Compose allocation of two records, update only the second, and missing lookup, then explicitly run it. Print labeled IDs, final records/next key, and unchanged initial state. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "files": [],
+      "checks": [
+        "ids=(40, 41)",
+        "next=42",
+        "missing=None",
+        "initial=[]"
+      ]
+    },
+    {
+      "id": "ast-optics",
+      "prompt": "Using FSharpPlus 1.9.1 custom lenses, transform a nested annotation record in a syntax node. Exercise view, setl, and over. Print labeled output proving the target changed, source-span and sibling survived, and setting the same value twice is stable. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "files": [],
+      "checks": [
+        "target=reviewed",
+        "sibling=true",
+        "span=12",
+        "repeated=true"
+      ]
+    },
+    {
+      "id": "validation-semantics",
+      "prompt": "Repair independent FSharpPlus 1.9.1 validations so both diagnostics are retained in stable order and success constructs a value. Separately demonstrate dependent Result binding skips its later binder using a counter inside it. Print computed labeled results. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "files": [],
+      "checks": [
+        "errors=Error [\"bad code\"; \"bad quantity\"]",
+        "success=Ok",
+        "dependentCalls=0"
+      ]
+    },
+    {
+      "id": "evented-composition",
+      "prompt": "Define a value-plus-events type with FSharpPlus 1.9.1 members needed for generic map, bind, lift2, and traversing a list of operations. Print computed labeled final values and event lists proving map preserves events and composition accumulates left-to-right. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "files": [],
+      "checks": [
+        "mapEvents=[\"read\"]",
+        "bindEvents=[\"read\"; \"write\"]",
+        "liftEvents=[\"a\"; \"b\"]",
+        "traverseEvents=[\"1\"; \"2\"; \"3\"]"
+      ]
+    },
+    {
+      "id": "nonempty-traversal",
+      "prompt": "Define a custom private-case non-empty container for FSharpPlus 1.9.1 with controlled list construction, Map, and shape-preserving Traverse. Demonstrate Option and Result effects. Print labeled rejected empty construction, successful retained values, and failing-element result. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "files": [],
+      "checks": [
+        "empty=None",
+        "success=Some",
+        "failure=None",
+        "result=Ok"
+      ]
+    },
+    {
+      "id": "codec-roundtrip",
+      "prompt": "Complete a self-contained FSharpPlus 1.9.1 in-memory codec for a two-field Book using ReaderT over Result for decoding and Const for encoding. Compose and execute both halves. Print labeled valid decode, missing and invalid errors, complete encoding, and round-trip result. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "files": [],
+      "checks": [
+        "missing=Error",
+        "invalid=Error",
+        "encoded=[",
+        "roundtrip=true"
+      ]
+    },
+    {
+      "id": "async-optional-routing",
+      "prompt": "Fix self-contained FSharpPlus 1.9.1 OptionT-over-Async handlers so rejected routes do not execute their response step. Add ordered fallback and an explicit execution boundary. Use deterministic traces inside async operations and print labeled match, fallback trace, and all-unmatched result. The script must begin with #r \"nuget: FSharpPlus, 1.9.1\" and throw on invariant failure.",
+      "files": [],
+      "checks": [
+        "match=Some",
+        "run:second",
+        "all=None",
+        "fallback=Some"
       ]
     }
   ]

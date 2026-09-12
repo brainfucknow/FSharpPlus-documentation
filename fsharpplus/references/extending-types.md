@@ -1,5 +1,7 @@
 # Extending custom types
 
+For independent Evented and non-empty adaptations, see [domain containers](validation-and-custom-types.md#u6-domain-containers).
+
 The instance-member shapes below follow the tutorial and the dispatchers in `FSharpPlus.Control`. This complete wrapper compiles as one unit:
 
 ```fsharp

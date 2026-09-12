@@ -1,5 +1,7 @@
 # Namespaces and shadowing
 
+Use narrow imports in new code. `open FSharpPlus` is the normal start for generic functions, but operator-only maintenance code may instead open `FSharpPlus.Operators`; do not rewrite an established operator style merely to apply a new-code preference. See [selective mapping](application-workflows.md#u2-selective-mapping).
+
 All snippets assume the package reference shown in `generic-functions.md`.
 
 | Namespace or module | Contents and when to open it |

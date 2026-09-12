@@ -1,0 +1,282 @@
+{
+  "schemaVersion": 1,
+  "scope": "Pinned downstream implementation evidence; not adoption statistics or copied source.",
+  "sources": [
+    {
+      "id": "U1",
+      "repository": "https://github.com/artempyanykh/marksman",
+      "commit": "4340227338f8d2b369bf38d19f029f1effb532f6",
+      "file": "Marksman/CodeActions.fs",
+      "symbol": "createMissingFile",
+      "permalink": "https://github.com/artempyanykh/marksman/blob/4340227338f8d2b369bf38d19f029f1effb532f6/Marksman/CodeActions.fs#L131-L149",
+      "evidenceClassification": "application implementation",
+      "observedFSharpPlusContribution": "monad', guard structure an optional action pipeline",
+      "caveats": "Does not establish deployment; configuration evidence is separately pinned.",
+      "retrieved": "2026-09-12",
+      "license": {
+        "spdx": "MIT",
+        "verifiedVia": "GitHub repository license metadata"
+      },
+      "downstreamFSharpPlusVersion": "unknown",
+      "adaptationVerification": {
+        "package": "FSharpPlus 1.9.1",
+        "sdk": ".NET SDK 8.0.425",
+        "command": "python3 scripts/verify_fsharpplus_examples.py",
+        "result": "pass"
+      }
+    },
+    {
+      "id": "U1-config",
+      "repository": "https://github.com/artempyanykh/marksman",
+      "commit": "4340227338f8d2b369bf38d19f029f1effb532f6",
+      "file": "Marksman/Config.fs",
+      "symbol": "nonNegativeIntArrayFromTableOpt",
+      "permalink": "https://github.com/artempyanykh/marksman/blob/4340227338f8d2b369bf38d19f029f1effb532f6/Marksman/Config.fs#L86-L103",
+      "evidenceClassification": "application implementation",
+      "observedFSharpPlusContribution": "monad preserves optional configuration and WrongValue errors",
+      "caveats": "Not the same workflow as code actions.",
+      "retrieved": "2026-09-12",
+      "license": {
+        "spdx": "MIT",
+        "verifiedVia": "GitHub repository license metadata"
+      },
+      "downstreamFSharpPlusVersion": "unknown",
+      "adaptationVerification": {
+        "package": "FSharpPlus 1.9.1",
+        "sdk": ".NET SDK 8.0.425",
+        "command": "python3 scripts/verify_fsharpplus_examples.py",
+        "result": "pass"
+      }
+    },
+    {
+      "id": "U2",
+      "repository": "https://github.com/tonyx/Sharpino",
+      "commit": "a397f8e50384e1fe81aeb33640d2a15d50ec4f39",
+      "file": "Sharpino.Sample.16/MaterialManager.fs",
+      "symbol": "material transformations",
+      "permalink": "https://github.com/tonyx/Sharpino/blob/a397f8e50384e1fe81aeb33640d2a15d50ec4f39/Sharpino.Sample.16/MaterialManager.fs#L35-L45",
+      "evidenceClassification": "sample application",
+      "observedFSharpPlusContribution": "FSharpPlus.Operators |>> maps values",
+      "caveats": "Adjacent result/taskResult/traverseResultM ownership is not inferred.",
+      "retrieved": "2026-09-12",
+      "license": {
+        "spdx": "MIT",
+        "verifiedVia": "GitHub repository license metadata"
+      },
+      "downstreamFSharpPlusVersion": "unknown",
+      "adaptationVerification": {
+        "package": "FSharpPlus 1.9.1",
+        "sdk": ".NET SDK 8.0.425",
+        "command": "python3 scripts/verify_fsharpplus_examples.py",
+        "result": "pass"
+      }
+    },
+    {
+      "id": "U3",
+      "repository": "https://github.com/ZeromaXHe/ZeromaX-s-Playground",
+      "commit": "bd3ffa4c800ed96253682c6abdc4a8b3765fc159",
+      "file": "MainGame/FrontEndToolFS/HexGlobal/Repository.fs",
+      "symbol": "repository operations",
+      "permalink": "https://github.com/ZeromaXHe/ZeromaX-s-Playground/blob/bd3ffa4c800ed96253682c6abdc4a8b3765fc159/MainGame/FrontEndToolFS/HexGlobal/Repository.fs#L22-L65",
+      "evidenceClassification": "playground/game implementation",
+      "observedFSharpPlusContribution": "State.get, State.put, and monad thread Planet",
+      "caveats": "Not evidence of commercial adoption, transactions, or thread safety.",
+      "retrieved": "2026-09-12",
+      "license": {
+        "spdx": "AGPL-3.0",
+        "verifiedVia": "GitHub repository license metadata"
+      },
+      "downstreamFSharpPlusVersion": "unknown",
+      "adaptationVerification": {
+        "package": "FSharpPlus 1.9.1",
+        "sdk": ".NET SDK 8.0.425",
+        "command": "python3 scripts/verify_fsharpplus_examples.py",
+        "result": "pass"
+      }
+    },
+    {
+      "id": "U4-types",
+      "repository": "https://github.com/labs-lang/labs",
+      "commit": "482cf8f22db96eab844cab5677eda6b9ad7b8680",
+      "file": "LabsParser/Types.fs",
+      "symbol": "active lens definitions",
+      "permalink": "https://github.com/labs-lang/labs/blob/482cf8f22db96eab844cab5677eda6b9ad7b8680/LabsParser/Types.fs#L89-L105",
+      "evidenceClassification": "language-processing implementation",
+      "observedFSharpPlusContribution": "FSharpPlus.Lens lens defines record optics",
+      "caveats": "Commented Duplicate.fs code is excluded.",
+      "retrieved": "2026-09-12",
+      "license": {
+        "spdx": "BSD-3-Clause",
+        "verifiedVia": "GitHub repository license metadata"
+      },
+      "downstreamFSharpPlusVersion": "unknown",
+      "adaptationVerification": {
+        "package": "FSharpPlus 1.9.1",
+        "sdk": ".NET SDK 8.0.425",
+        "command": "python3 scripts/verify_fsharpplus_examples.py",
+        "result": "pass"
+      }
+    },
+    {
+      "id": "U4-use",
+      "repository": "https://github.com/labs-lang/labs",
+      "commit": "482cf8f22db96eab844cab5677eda6b9ad7b8680",
+      "file": "Frontend/SymbolTable.fs",
+      "symbol": "symbol transformations",
+      "permalink": "https://github.com/labs-lang/labs/blob/482cf8f22db96eab844cab5677eda6b9ad7b8680/Frontend/SymbolTable.fs#L1-L80",
+      "evidenceClassification": "language-processing implementation",
+      "observedFSharpPlusContribution": "active callers use the optics namespace",
+      "caveats": "Only active definitions and callers support the claim.",
+      "retrieved": "2026-09-12",
+      "license": {
+        "spdx": "BSD-3-Clause",
+        "verifiedVia": "GitHub repository license metadata"
+      },
+      "downstreamFSharpPlusVersion": "unknown",
+      "adaptationVerification": {
+        "package": "FSharpPlus 1.9.1",
+        "sdk": ".NET SDK 8.0.425",
+        "command": "python3 scripts/verify_fsharpplus_examples.py",
+        "result": "pass"
+      }
+    },
+    {
+      "id": "U5-result",
+      "repository": "https://github.com/ntwilson/SafetyFirst",
+      "commit": "973fba6d9de8efce8b9f986775cf6b70a82c236f",
+      "file": "SafetyFirst/ResultModule.fs",
+      "symbol": "ResultExpression.MergeSources",
+      "permalink": "https://github.com/ntwilson/SafetyFirst/blob/973fba6d9de8efce8b9f986775cf6b70a82c236f/SafetyFirst/ResultModule.fs#L12-L20",
+      "evidenceClassification": "library implementation",
+      "observedFSharpPlusContribution": "custom MergeSources uses F#+ ++ to combine two errors",
+      "caveats": "Does not describe every Result builder.",
+      "retrieved": "2026-09-12",
+      "license": {
+        "spdx": "CC0-1.0",
+        "verifiedVia": "GitHub repository license metadata"
+      },
+      "downstreamFSharpPlusVersion": "unknown",
+      "adaptationVerification": {
+        "package": "FSharpPlus 1.9.1",
+        "sdk": ".NET SDK 8.0.425",
+        "command": "python3 scripts/verify_fsharpplus_examples.py",
+        "result": "pass"
+      }
+    },
+    {
+      "id": "U5-outcome",
+      "repository": "https://github.com/labs-lang/labs",
+      "commit": "482cf8f22db96eab844cab5677eda6b9ad7b8680",
+      "file": "Frontend/Outcome.fs",
+      "symbol": "Outcome.transform",
+      "permalink": "https://github.com/labs-lang/labs/blob/482cf8f22db96eab844cab5677eda6b9ad7b8680/Frontend/Outcome.fs#L20-L29",
+      "evidenceClassification": "frontend implementation",
+      "observedFSharpPlusContribution": "plus retains warning values while transforming",
+      "caveats": "Does not imply universal warning/error semantics.",
+      "retrieved": "2026-09-12",
+      "license": {
+        "spdx": "BSD-3-Clause",
+        "verifiedVia": "GitHub repository license metadata"
+      },
+      "downstreamFSharpPlusVersion": "unknown",
+      "adaptationVerification": {
+        "package": "FSharpPlus 1.9.1",
+        "sdk": ".NET SDK 8.0.425",
+        "command": "python3 scripts/verify_fsharpplus_examples.py",
+        "result": "pass"
+      }
+    },
+    {
+      "id": "U6-nonempty",
+      "repository": "https://github.com/ntwilson/SafetyFirst",
+      "commit": "973fba6d9de8efce8b9f986775cf6b70a82c236f",
+      "file": "SafetyFirst/NonEmpty.fs",
+      "symbol": "NonEmpty Map members",
+      "permalink": "https://github.com/ntwilson/SafetyFirst/blob/973fba6d9de8efce8b9f986775cf6b70a82c236f/SafetyFirst/NonEmpty.fs#L91-L115",
+      "evidenceClassification": "library implementation",
+      "observedFSharpPlusContribution": "static Map members participate in F#+ mapping",
+      "caveats": "SafetyFirst NonEmpty is not F#+ NonEmptyList.",
+      "retrieved": "2026-09-12",
+      "license": {
+        "spdx": "CC0-1.0",
+        "verifiedVia": "GitHub repository license metadata"
+      },
+      "downstreamFSharpPlusVersion": "unknown",
+      "adaptationVerification": {
+        "package": "FSharpPlus 1.9.1",
+        "sdk": ".NET SDK 8.0.425",
+        "command": "python3 scripts/verify_fsharpplus_examples.py",
+        "result": "pass"
+      }
+    },
+    {
+      "id": "U6-evented",
+      "repository": "https://github.com/osstotalsoft/nbb",
+      "commit": "a1a5aacd24a66c4eaf96947252f484b9cb2766c0",
+      "file": "test/UnitTests/Core/NBB.Core.Evented.FSharp.Tests/Sample.fs",
+      "symbol": "Domain samples",
+      "permalink": "https://github.com/osstotalsoft/nbb/blob/a1a5aacd24a66c4eaf96947252f484b9cb2766c0/test/UnitTests/Core/NBB.Core.Evented.FSharp.Tests/Sample.fs#L15-L47",
+      "evidenceClassification": "unit-test sample",
+      "observedFSharpPlusContribution": "bind, map, Kleisli, lift2, and traverse compose Evented",
+      "caveats": "Sample evidence, not production-service evidence.",
+      "retrieved": "2026-09-12",
+      "license": {
+        "spdx": "MIT",
+        "verifiedVia": "GitHub repository license metadata"
+      },
+      "downstreamFSharpPlusVersion": "unknown",
+      "adaptationVerification": {
+        "package": "FSharpPlus 1.9.1",
+        "sdk": ".NET SDK 8.0.425",
+        "command": "python3 scripts/verify_fsharpplus_examples.py",
+        "result": "pass"
+      }
+    },
+    {
+      "id": "U7",
+      "repository": "https://github.com/fsprojects/Fleece",
+      "commit": "9e1adf600f2ac01ade12fdb87e64c5eb3c32c296",
+      "file": "src/Fleece/Fleece.fs",
+      "symbol": "Encoder/Decoder/Codec",
+      "permalink": "https://github.com/fsprojects/Fleece/blob/9e1adf600f2ac01ade12fdb87e64c5eb3c32c296/src/Fleece/Fleece.fs#L113-L123",
+      "evidenceClassification": "serialization-library implementation",
+      "observedFSharpPlusContribution": "ReaderT decoder and Const encoder are codec ingredients",
+      "caveats": "Aliases alone do not establish every codec behavior.",
+      "retrieved": "2026-09-12",
+      "license": {
+        "spdx": "Apache-2.0",
+        "verifiedVia": "GitHub repository license metadata"
+      },
+      "downstreamFSharpPlusVersion": "unknown",
+      "adaptationVerification": {
+        "package": "FSharpPlus 1.9.1",
+        "sdk": ".NET SDK 8.0.425",
+        "command": "python3 scripts/verify_fsharpplus_examples.py",
+        "result": "pass"
+      }
+    },
+    {
+      "id": "U8",
+      "repository": "https://github.com/fsprojects/FSharpPlus.AspNetCore",
+      "commit": "04b39a9b370871c853fd46a02e9fcb5a01964e04",
+      "file": "src/FSharpPlus.AspNetCore.Suave/Library.fs",
+      "symbol": "WebPart",
+      "permalink": "https://github.com/fsprojects/FSharpPlus.AspNetCore/blob/04b39a9b370871c853fd46a02e9fcb5a01964e04/src/FSharpPlus.AspNetCore.Suave/Library.fs#L14-L37",
+      "evidenceClassification": "adapter/demonstration implementation",
+      "observedFSharpPlusContribution": "OptionT over Async and choice model optional handlers",
+      "caveats": "Source calls itself simplified; not broad framework adoption.",
+      "retrieved": "2026-09-12",
+      "license": {
+        "spdx": "MIT",
+        "verifiedVia": "GitHub repository license metadata"
+      },
+      "downstreamFSharpPlusVersion": "unknown",
+      "adaptationVerification": {
+        "package": "FSharpPlus 1.9.1",
+        "sdk": ".NET SDK 8.0.425",
+        "command": "python3 scripts/verify_fsharpplus_examples.py",
+        "result": "pass"
+      }
+    }
+  ]
+}

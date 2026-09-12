@@ -1,5 +1,15 @@
 # Generic functions and operators
 
+The mapping operator `|>>` is available from `FSharpPlus.Operators` and is used as `source |>> mapping`. It stays outside the lookup table because the verifier currently treats pipe characters as delimiters.
+
+```fsharp
+#r "nuget: FSharpPlus, 1.9.1"
+open FSharpPlus.Operators
+let mapped: int list = [1; 2] |>> ((+) 1)
+printfn "pipe-map=%A" mapped
+// expect: pipe-map=[2; 3]
+```
+
 All examples assume `#r "nuget: FSharpPlus, 1.9.1"` followed by `open FSharpPlus`. Signatures below use the API reference's higher-kinded-type notation. “Member” is the instance hook selected by the dispatcher; built-in overloads can also be selected.
 
 | Name | API signature | Required static member | Compiled one-line example |

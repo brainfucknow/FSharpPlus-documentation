@@ -11,6 +11,11 @@ skill writes better F#+ code than the same model without it.
 stack, repair a value-restriction error, give a wrapper a full monad instance.
 Each has `checks`, fragments that must appear in the script's printed output.
 
+Nine practical scenarios add optional actions, mapping interop, state, optics,
+validation semantics, domain containers, codecs, and async routing. Their domains
+differ from the recipes. Output matching is only a smoke test, so inspect
+generated source for hardcoded output and attribution claims.
+
 `run_ab.py` runs every task twice through `claude -p` with one model: the
 `with_skill` run is told to read `fsharpplus/SKILL.md` first, the `baseline`
 run is not. Neither may run dotnet, so the difference is what the skill

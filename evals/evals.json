@@ -45,6 +45,110 @@
         "Box 3",
         "Box 6"
       ]
+    },
+    {
+      "id": "optional-code-action",
+      "prompt": "Write a self-contained FSharpPlus 1.9.1 script that builds an optional code action. Locate \"link\" as \"draft.md\", resolve it as \"/docs/draft.md\", reject an existing destination with `guard`, and count resolution calls. Evaluate a valid request, a missing reference, and an existing target. Print them with the labels `valid=`, `missing=`, `existing=`, and `calls=`. The script must start with `#r \"nuget: FSharpPlus, 1.9.1\"`.",
+      "files": [],
+      "checks": [
+        "valid=Some \"create:/docs/draft.md\"",
+        "missing=None",
+        "existing=None",
+        "calls=2"
+      ]
+    },
+    {
+      "id": "mapping-interop",
+      "prompt": "Write a self-contained FSharpPlus 1.9.1 script that uses `|>>` even when a local function named `map` is in scope. Double `[2; 4]`, compare the result with `List.map`, and use one inline generic helper to increment `Some 8` and `None`. Print the results with the labels `mapped=`, `equal=`, `optional=`, and `missing=`. The script must start with `#r \"nuget: FSharpPlus, 1.9.1\"`.",
+      "files": [],
+      "checks": [
+        "mapped=[4; 8]",
+        "equal=true",
+        "optional=Some 9",
+        "missing=None"
+      ]
+    },
+    {
+      "id": "state-repository",
+      "prompt": "Write a self-contained FSharpPlus 1.9.1 script using `State` for an inventory repository with a record map and next key. Starting at key 40, allocate \"pen\" and \"book\", rename only the second to \"notebook\", and look up a missing key. Run the computation and show that the initial state remains unchanged. Print `ids=`, `records=`, `next=`, `missing=`, and `initial=`. The script must start with `#r \"nuget: FSharpPlus, 1.9.1\"`.",
+      "files": [],
+      "checks": [
+        "ids=(40, 41)",
+        "records=[(40, \"pen\"); (41, \"notebook\")]",
+        "next=42",
+        "missing=None",
+        "initial=([], 40)"
+      ]
+    },
+    {
+      "id": "ast-optics",
+      "prompt": "Write a self-contained FSharpPlus 1.9.1 script with composed custom lenses for a syntax node containing a nested annotation. Use `view`, `setl`, and `over` to change target \"draft\" to \"reviewed\" while preserving sibling `true` and span 12. Show that setting \"reviewed\" twice is stable. Print `target=`, `sibling=`, `span=`, and `repeated=`. The script must start with `#r \"nuget: FSharpPlus, 1.9.1\"`.",
+      "files": [],
+      "checks": [
+        "target=reviewed",
+        "sibling=true",
+        "span=12",
+        "repeated=true"
+      ]
+    },
+    {
+      "id": "validation-semantics",
+      "prompt": "Write a self-contained FSharpPlus 1.9.1 script that accumulates `\"bad code\"` and `\"bad quantity\"` from independent validations, and successfully constructs `(\"ABC\", 2)`. Separately use dependent `Result.bind` with an initial error and a counter to prove its binder is skipped. Print `errors=`, `success=`, and `dependentCalls=`. The script must start with `#r \"nuget: FSharpPlus, 1.9.1\"`.",
+      "files": [],
+      "checks": [
+        "errors=Error [\"bad code\"; \"bad quantity\"]",
+        "success=Ok (\"ABC\", 2)",
+        "dependentCalls=0"
+      ]
+    },
+    {
+      "id": "evented-composition",
+      "prompt": "Write a self-contained FSharpPlus 1.9.1 script defining a value-plus-events type with the members required for generic `map`, `bind`, `lift2`, and traversing a list. Use values that produce mapped value 3 with `[\"read\"]`, bound value 6 with `[\"read\"; \"write\"]`, lifted value 7 with `[\"a\"; \"b\"]`, and traversed values `[10; 20; 30]` with `[\"1\"; \"2\"; \"3\"]`. Print `mapValue=`, `mapEvents=`, `bindValue=`, `bindEvents=`, `liftValue=`, `liftEvents=`, `traverseValues=`, and `traverseEvents=`. The script must start with `#r \"nuget: FSharpPlus, 1.9.1\"`.",
+      "files": [],
+      "checks": [
+        "mapValue=3",
+        "mapEvents=[\"read\"]",
+        "bindValue=6",
+        "bindEvents=[\"read\"; \"write\"]",
+        "liftValue=7",
+        "liftEvents=[\"a\"; \"b\"]",
+        "traverseValues=[10; 20; 30]",
+        "traverseEvents=[\"1\"; \"2\"; \"3\"]"
+      ]
+    },
+    {
+      "id": "nonempty-traversal",
+      "prompt": "Write a self-contained FSharpPlus 1.9.1 script defining a private-case non-empty container with controlled list construction, `Map`, and shape-preserving `Traverse`. Traverse `[1; 2; 3]` through Option to produce `[2; 4; 6]`, fail on element 2, and traverse through Result to produce `[2; 3; 4]`. Print `empty=`, `success=`, `failure=`, and `result=`. The script must start with `#r \"nuget: FSharpPlus, 1.9.1\"`.",
+      "files": [],
+      "checks": [
+        "empty=None",
+        "success=Some [2; 4; 6]",
+        "failure=None",
+        "result=Ok [2; 3; 4]"
+      ]
+    },
+    {
+      "id": "codec-roundtrip",
+      "prompt": "Write a self-contained FSharpPlus 1.9.1 in-memory codec for `Book = { Title: string; Pages: int }`. Use `ReaderT` over `Result` for decoding and `Const` for encoding. Exercise a valid book `{\"Guide\", 120}`, a missing title, invalid pages, complete encoding, and a round trip. Print `valid=`, `missing=`, `invalid=`, `encoded=`, and `roundtrip=`. The script must start with `#r \"nuget: FSharpPlus, 1.9.1\"`.",
+      "files": [],
+      "checks": [
+        "valid=Ok (\"Guide\", 120)",
+        "missing=Error \"missing title\"",
+        "invalid=Error \"invalid pages\"",
+        "encoded=[(\"pages\", \"120\"); (\"title\", \"Guide\")]",
+        "roundtrip=true"
+      ]
+    },
+    {
+      "id": "async-optional-routing",
+      "prompt": "Write a self-contained FSharpPlus 1.9.1 script with `OptionT` over `Async` handlers, ordered fallback, and an explicit execution boundary. Route `/second` through handlers for `/first` and `/second`, recording deterministic `check:` and `run:` traces, then try an unmatched route. Print `match=`, `fallback=`, `trace=`, and `all=`. `fallback=` should contain the selected trace. The script must start with `#r \"nuget: FSharpPlus, 1.9.1\"`.",
+      "files": [],
+      "checks": [
+        "match=Some \"two\"",
+        "fallback=[\"check:/first\"; \"check:/second\"; \"run:/second\"]",
+        "trace=[\"check:/first\"; \"check:/second\"]",
+        "all=None"
+      ]
     }
   ]
 }

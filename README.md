@@ -8,3 +8,5 @@ Run `python3 scripts/verify_fsharpplus_examples.py` to compile every F# example 
 ## Evaluation
 
 Run `python3 evals/run_ab.py` to compare the same model with and without the skill on the tasks in `evals/evals.json`. See `evals/README.md` for the method and how to read the results.
+
+See the [real-world use-case recipes](fsharpplus/references/real-world-use-cases.md) for practical, source-backed patterns.

@@ -27,6 +27,7 @@ All examples assume `#r "nuget: FSharpPlus, 1.9.1"` followed by `open FSharpPlus
 | `(<*>)` | applicative apply | `(<*>)` | `let _: int option = Some ((+) 1) <*> Some 2` |
 | `(>=>)` / `(<=<)` | left-to-right / right-to-left Kleisli composition | `(>=>)` (bind fallback) | `let _ = (((fun x -> Some (x + 1)) >=> (fun x -> Some (x * 2))) 2, ((fun x -> Some (x * 2)) <=< (fun x -> Some (x + 1))) 2)` |
 | `(++)` | generic append | `(+)` / append dispatcher | `let _: string = "a" ++ "b"` |
+| `(\|>>)` | functor map with the source first | `(<!>)` or `Map` | `let _: int list = [1; 2] \|>> ((+) 1)` |
 
 ## Names that do not exist
 

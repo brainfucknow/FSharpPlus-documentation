@@ -9,7 +9,12 @@ skill writes better F#+ code than the same model without it.
 `evals.json` holds realistic tasks: extend a custom type for `map` and
 `traverse`, fix a `Validation` snippet that short-circuits, build a `ReaderT`
 stack, repair a value-restriction error, give a wrapper a full monad instance.
-Each has `checks`, fragments that must appear in the script's printed output. Nine practical scenarios add optional actions, mapping interop, state, optics, validation semantics, domain containers, codecs, and async routing. Their domains differ from the recipes. Output matching is only a smoke test; inspect generated source for hardcoded output and attribution claims.
+Each has `checks`, fragments that must appear in the script's printed output.
+
+Nine practical scenarios add optional actions, mapping interop, state, optics,
+validation semantics, domain containers, codecs, and async routing. Their domains
+differ from the recipes. Output matching is only a smoke test, so inspect
+generated source for hardcoded output and attribution claims.
 
 `run_ab.py` runs every task twice through `claude -p` with one model: the
 `with_skill` run is told to read `fsharpplus/SKILL.md` first, the `baseline`
@@ -50,5 +55,3 @@ Add an object to `evals.json` with a prompt a real user would write, any input
 files under `inputs/`, and `checks` that only a correct program prints.
 Prefer checks on values over checks on source text; the compiler and the
 printed output are the judges.
-
-Use separate checkouts with the identical evaluation set and distinct workspaces to compare old and expanded skills. Keep the existing `baseline` and `with_skill` configurations. Do not run paid generation without authorization; record it as not run.

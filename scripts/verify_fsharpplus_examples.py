@@ -85,9 +85,10 @@ def generic_table_case() -> tuple[str, str, bool, None]:
     for line in document.read_text(encoding="utf-8").splitlines():
         if not line.startswith("| `"):
             continue
-        cells = line.split("|")
+        cells = re.split(r"(?<!\\)\|", line)
         if len(cells) >= 6 and cells[4].strip().startswith("`"):
-            examples.append(cells[4].strip().removeprefix("`").removesuffix("`"))
+            example = cells[4].strip().removeprefix("`").removesuffix("`")
+            examples.append(example.replace(r"\|", "|"))
     if not examples:
         raise ValueError("generic-functions.md contains no one-line table examples")
     source = PACKAGE_REFERENCE + "open FSharpPlus\n" + "\n".join(examples) + "\n"

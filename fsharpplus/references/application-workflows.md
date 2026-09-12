@@ -1,17 +1,8 @@
 # Application workflows
 
-## Contents
+## Optional code actions
 
-- [U1 Optional code actions](#u1-optional-code-actions)
-- [U2 Selective mapping](#u2-selective-mapping)
-
-## U1 Optional code actions
-
-**Problem.** Produce an action only when a reference and target resolve and the
-destination is absent; parse optional configuration without hiding malformed
-values. Marksman U1 is application implementation using `monad'`, `guard`, and
-`monad`. This establishes usage, not deployment. The following is an independent
-stand-in: strings and a set replace its workspace and protocol types.
+Build an action only after its reference and target resolve, and distinguish missing configuration from invalid values. This pattern appears in [Marksman's code actions](https://github.com/artempyanykh/marksman/blob/4340227338f8d2b369bf38d19f029f1effb532f6/Marksman/CodeActions.fs#L131-L149) and [configuration parser](https://github.com/artempyanykh/marksman/blob/4340227338f8d2b369bf38d19f029f1effb532f6/Marksman/Config.fs#L86-L103).
 
 Use the builder when several generic steps must compose; a `match` chain is
 usually clearer for one or two concrete `option`s. `Result` is separate because
@@ -23,7 +14,9 @@ open FSharpPlus
 
 let mutable resolutions = 0
 let locate text = if text = "link" then Some "draft.md" else None
-let resolve target = resolutions <- resolutions + 1; if target = "draft.md" then Some "/docs/draft.md" else None
+let resolve target =
+    resolutions <- resolutions + 1
+    if target = "draft.md" then Some "/docs/draft.md" else None
 let action existing text : string option = monad' {
     let! reference = locate text
     let! target = resolve reference
@@ -37,10 +30,11 @@ let existing = action (Set.singleton "/docs/draft.md") "link"
 let parseConfig (value: string option) =
     match value with
     | None -> Ok 30
-    | Some text -> match System.Int32.TryParse text with | true, n when n > 0 -> Ok n | _ -> Error ("invalid timeout: " + text)
+    | Some text ->
+        match System.Int32.TryParse text with
+        | true, n when n > 0 -> Ok n
+        | _ -> Error ("invalid timeout: " + text)
 let good, absent, bad = parseConfig (Some "12"), parseConfig None, parseConfig (Some "zero")
-if valid <> Some "create:/docs/draft.md" || unresolved <> None || existing <> None || afterMissing <> 1 then failwith "option behavior"
-if good <> Ok 12 || absent <> Ok 30 || bad <> Error "invalid timeout: zero" then failwith "config behavior"
 printfn "actions=%A;%A;%A;resolutions=%d" valid unresolved existing resolutions
 // expect: actions=Some "create:/docs/draft.md";None;None;resolutions=2
 printfn "config=%A;%A;%A" good absent bad
@@ -51,18 +45,13 @@ The counter is inside `resolve`; failed `locate` therefore proves its later
 binder was skipped. It says nothing about work evaluated before a bind. See
 [computation expressions](computation-expressions.md) and [inference repairs](srtp-errors.md).
 
-## U2 Selective mapping
+## Selective mapping
 
-Sharpino U2 is a sample application that opens `FSharpPlus.Operators` and uses
-the F#+ mapping operator `|>>`. Adjacent `result`, `taskResult`, and
-`List.traverseResultM` must be attributed to their actual provider, not to that
-open. Preserve this style while maintaining such code; for new monomorphic list
-code prefer `List.map`.
+Maintain operator-based mapping alongside concrete and reusable generic mapping. The operator use appears in the [Sharpino sample](https://github.com/tonyx/Sharpino/blob/a397f8e50384e1fe81aeb33640d2a15d50ec4f39/Sharpino.Sample.16/MaterialManager.fs#L35-L45).
 
 ```fsharp
 #r "nuget: FSharpPlus, 1.9.1"
 open FSharpPlus
-open FSharpPlus.Operators
 
 let source = [1; 2; 3]
 let operatorForm: int list = source |>> ((*) 10)
@@ -71,7 +60,6 @@ let inline increment container = map ((+) 1) container
 let listResult: int list = increment [1; 2]
 let optionResult: int option = increment (Some 4)
 let missing: int option = increment None
-if operatorForm <> concreteForm || missing <> None then failwith "mapping semantics"
 printfn "mapped=%A;equal=%b" operatorForm (operatorForm = concreteForm)
 // expect: mapped=[10; 20; 30];equal=true
 printfn "generic=%A;%A;%A" listResult optionResult missing

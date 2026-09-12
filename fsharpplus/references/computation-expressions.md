@@ -1,7 +1,5 @@
 # Computation expressions
 
-Applied recipes: [optional workflows](application-workflows.md#u1-optional-code-actions), [repository state](state-and-optics.md#u3-state-threaded-repository), and [async optional routing](codecs-and-composed-effects.md#u8-asynchronous-optional-routing).
-
 Examples assume the pinned package reference and the indicated opens. The generic `monad` builder delays the computation through the monad's `Delay` hook and supports effect syntax; `monad'` is the strict form. Builder properties refine the protocol without introducing different top-level builders.
 
 | Need | Builder documented by 1.9.1 |

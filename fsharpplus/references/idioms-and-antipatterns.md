@@ -1,7 +1,5 @@
 # Idioms and antipatterns
 
-The concrete-first rule guides new monomorphic code; it is not a demand to rewrite readable, tested operator-heavy code. See [selective mapping](application-workflows.md#u2-selective-mapping).
-
 ## Generic versus concrete
 
 Use generic dispatch when the surrounding inline function is truly polymorphic or the container is an F#+ type. A known list gains nothing from SRTP; `List.map` gives simpler errors and makes intent explicit.

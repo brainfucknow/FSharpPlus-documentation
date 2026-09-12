@@ -9,4 +9,4 @@ Run `python3 scripts/verify_fsharpplus_examples.py` to compile every F# example 
 
 Run `python3 evals/run_ab.py` to compare the same model with and without the skill on the tasks in `evals/evals.json`. See `evals/README.md` for the method and how to read the results.
 
-Problem-oriented, source-backed recipes live in [`fsharpplus/references/real-world-use-cases.md`](fsharpplus/references/real-world-use-cases.md). They distinguish observations, verified 1.9.1 adaptations, and model results. Run `python3 scripts/verify_fsharpplus_examples.py`; the separate A/B method is in [`evals/README.md`](evals/README.md).
+See the [real-world use-case recipes](fsharpplus/references/real-world-use-cases.md) for practical, source-backed patterns.

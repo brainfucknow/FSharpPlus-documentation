@@ -66,8 +66,6 @@ def codex_command(prompt: str, model: str | None, config: str) -> list[str]:
     command = ["codex", "exec", "--json", "--sandbox", "workspace-write", "--skip-git-repo-check"]
     if model:
         command += ["--model", model]
-    if config == "with_skill":
-        command += ["--add-dir", str(SKILL_DIR)]
     return command + [prompt]
 
 
@@ -145,15 +143,15 @@ def grade(eval_: dict, run_dir: Path, dotnet: str) -> dict:
     return result
 
 
-def wilson_interval(passes: int, total: int) -> tuple[float, float]:
+def wilson_interval(passes: int, total: int) -> tuple[float, float, float]:
     if total == 0:
-        return 0.0, 0.0
+        return 0.0, 0.0, 0.0
     z = 1.96
     rate = passes / total
     denominator = 1 + z * z / total
     centre = (rate + z * z / (2 * total)) / denominator
     margin = z * sqrt(rate * (1 - rate) / total + z * z / (4 * total * total)) / denominator
-    return centre - margin, centre + margin
+    return rate, centre - margin, centre + margin
 
 
 def run_directories(workspace: Path, eval_: dict, config: str) -> list[Path]:
@@ -162,6 +160,30 @@ def run_directories(workspace: Path, eval_: dict, config: str) -> list[Path]:
         (path for path in config_dir.glob("run-*") if path.is_dir()),
         key=lambda path: (int(path.name[4:]) if path.name[4:].isdigit() else sys.maxsize, path.name),
     )
+
+
+def remove_stale_runs(workspace: Path, eval_: dict, config: str, repeats: int) -> None:
+    for run_dir in run_directories(workspace, eval_, config):
+        index = run_dir.name.removeprefix("run-")
+        if index.isdigit() and int(index) > repeats:
+            shutil.rmtree(run_dir)
+            print(f"removed {run_dir}")
+
+
+def print_verbose(rows: list[tuple[str, str, dict, Path]]) -> None:
+    print(f"{'eval':26}{'config':12}{'run':9}{'compile':10}{'checks':10}{'seconds':9}errors")
+    for eval_id, config, grading, run_dir in rows:
+        run_json = run_dir / "run.json"
+        seconds = ""
+        if run_json.exists():
+            seconds = str(json.loads(run_json.read_text()).get("duration_s", ""))
+        state = "missing" if grading["missing"] else "ok" if grading["compiled"] else "FAILED"
+        checks = f"{grading['passed']}/{grading['total']}"
+        print(
+            f"{eval_id:26}{config:12}{run_dir.name:9}{state:10}"
+            f"{checks:10}{seconds:9}{','.join(grading['errors'])}"
+        )
+    print()
 
 
 def main() -> int:
@@ -173,6 +195,7 @@ def main() -> int:
     parser.add_argument("--configs", nargs="*", default=list(CONFIGS), choices=CONFIGS)
     parser.add_argument("--grade-only", action="store_true", help="skip generation; compile and grade existing runs")
     parser.add_argument("--repeats", type=int, default=1, help="runs per eval and configuration (default: 1)")
+    parser.add_argument("--verbose", action="store_true", help="print diagnostics for every run")
     parser.add_argument("--jobs", type=int, default=4, help="parallel generator runs")
     parser.add_argument("--dotnet", default="dotnet")
     args = parser.parse_args()
@@ -183,13 +206,18 @@ def main() -> int:
     if args.only:
         evals = [e for e in evals if e["id"] in args.only]
     if args.grade_only:
-        jobs = [
-            (e, c, run_dir)
-            for e in evals
-            for c in args.configs
-            for run_dir in run_directories(args.workspace, e, c)
-        ]
+        jobs = []
+        for eval_ in evals:
+            for config in args.configs:
+                config_dir = args.workspace / eval_["id"] / config
+                run_dirs = run_directories(args.workspace, eval_, config)
+                if config_dir.is_dir() and not run_dirs:
+                    print(f"warning: no run-* directories in {config_dir}", file=sys.stderr)
+                jobs.extend((eval_, config, run_dir) for run_dir in run_dirs)
     else:
+        for eval_ in evals:
+            for config in args.configs:
+                remove_stale_runs(args.workspace, eval_, config, args.repeats)
         jobs = [
             (e, c, args.workspace / e["id"] / c / f"run-{run}")
             for e in evals
@@ -202,6 +230,8 @@ def main() -> int:
             list(pool.map(lambda job: run_agent(job[0], job[1], job[2], args.agent, args.model), jobs))
 
     rows = [(e["id"], c, grade(e, d, args.dotnet), d) for e, c, d in jobs]
+    if args.verbose:
+        print_verbose(rows)
     widths = {config: max(18, len(config) + 2) for config in args.configs}
     print(f"{'eval':26}" + "".join(f"{config:{widths[config]}}" for config in args.configs))
     for eval_ in evals:
@@ -214,9 +244,11 @@ def main() -> int:
     print()
     for config in args.configs:
         mine = [g for _, c, g, _ in rows if c == config]
+        if not mine:
+            print(f"{config}: no runs")
+            continue
         full = sum(g["compiled"] and g["passed"] == g["total"] for g in mine)
-        low, high = wilson_interval(full, len(mine))
-        rate = full / len(mine) if mine else 0.0
+        rate, low, high = wilson_interval(full, len(mine))
         print(f"{config}: {full}/{len(mine)} runs fully passing, {rate:.1%} ({low:.1%}-{high:.1%})")
     return 0
 

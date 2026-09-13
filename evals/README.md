@@ -16,22 +16,26 @@ validation semantics, domain containers, codecs, and async routing. Their domain
 differ from the recipes. Output matching is only a smoke test, so inspect
 generated source for hardcoded output and attribution claims.
 
-`run_ab.py` runs every task twice through `claude -p` with one model: the
-`with_skill` run is told to read `fsharpplus/SKILL.md` first, the `baseline`
-run is not. Neither may run dotnet, so the difference is what the skill
-contributes as knowledge. The runner then compiles each `solution.fsx` with
-`dotnet fsi`, checks the output, and prints one row per run plus a
-fully-passing count per configuration.
+`run_ab.py` runs every task through `claude -p` with one model and two
+configurations. The `with_skill` runs are told to read
+`fsharpplus/SKILL.md` first; the `baseline` runs are not. Neither may run
+dotnet, so the difference is what the skill contributes as knowledge. The
+runner then compiles each `solution.fsx` with `dotnet fsi`, checks the output,
+and prints pass counts per task. Configuration summaries include total
+passes, total runs, pass rates, and 95% Wilson score intervals.
 
 ```sh
 python3 evals/run_ab.py --model sonnet
+python3 evals/run_ab.py --only extend-tree --repeats 2
 python3 evals/run_ab.py --only extend-tree readert-stack --configs with_skill
-python3 evals/run_ab.py --grade-only     # recompile existing runs
+python3 evals/run_ab.py --grade-only     # recompile every existing run
 ```
 
-Runs land in `evals/workspace/<eval>/<config>/` with the solution, the
-`claude -p` result (`run.json`), the compiler output, and `grading.json`.
-The workspace is ignored by git.
+`--repeats N` generates `N` runs per task and configuration; its default is
+one. Runs land in `evals/workspace/<eval>/<config>/run-<k>/` with the solution,
+the `claude -p` result (`run.json`), the compiler output, and `grading.json`.
+`--grade-only` grades every `run-*` directory it finds, independently of
+`--repeats`. The workspace is ignored by git.
 
 ## Reading the results
 

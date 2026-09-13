@@ -111,6 +111,8 @@ def run_agent(eval_: dict, config: str, run_dir: Path, agent: str, model: str | 
         record.update(claude_result(completed.stdout) if agent == "claude" else codex_result(completed.stdout))
     except (json.JSONDecodeError, KeyError):
         record["raw"] = completed.stdout[-2000:] + completed.stderr[-2000:]
+    if completed.returncode and "raw" not in record:
+        record["raw"] = completed.stdout[-2000:] + completed.stderr[-2000:]
     (run_dir / "run.json").write_text(json.dumps(record, indent=2))
     return record
 

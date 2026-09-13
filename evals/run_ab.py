@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Measure whether the fsharpplus skill improves generated F#+ code.
 
-Each eval prompt runs twice through `claude -p` with the same model: once told
-to read the skill first, once with no skill. Neither run may execute dotnet, so
-the comparison isolates what the skill contributes as knowledge. Every
-solution.fsx is then compiled with `dotnet fsi`, its output is checked against
-the eval's expected fragments, and a per-configuration table is printed.
+Each eval prompt runs through Claude Code or Codex with the same model in two
+configurations: one told to read the skill first and one without the skill.
+Neither configuration may execute dotnet, so the comparison isolates what the
+skill contributes as knowledge. Every solution.fsx is then compiled with
+`dotnet fsi`, its output is checked against the eval's expected fragments, and
+an aggregate table is printed.
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
+from math import sqrt
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -47,33 +49,68 @@ def build_prompt(eval_: dict, config: str, out: Path) -> str:
     return prefix + eval_["prompt"] + COMMON_RULES.format(out=out, skill_clause=skill_clause)
 
 
-def run_claude(eval_: dict, config: str, run_dir: Path, model: str) -> dict:
-    run_dir.mkdir(parents=True, exist_ok=True)
-    for name in eval_.get("files", []):
-        shutil.copy(INPUTS / name, run_dir / name)
-    out = run_dir / "solution.fsx"
+def claude_command(prompt: str, model: str | None, config: str) -> list[str]:
     command = [
-        "claude", "-p", build_prompt(eval_, config, out),
-        "--model", model,
+        "claude", "-p", prompt,
+        "--model", model or "sonnet",
         "--permission-mode", "acceptEdits",
         "--allowedTools", "Read,Write,Edit,Glob,Grep",
         "--output-format", "json",
     ]
     if config == "with_skill":
         command += ["--add-dir", str(SKILL_DIR)]
-    env = {k: v for k, v in os.environ.items() if not k.startswith(("CLAUDE_CODE", "CLAUDECODE"))}
+    return command
+
+
+def codex_command(prompt: str, model: str | None, config: str) -> list[str]:
+    command = ["codex", "exec", "--json", "--sandbox", "workspace-write", "--skip-git-repo-check"]
+    if model:
+        command += ["--model", model]
+    return command + [prompt]
+
+
+def claude_result(stdout: str) -> dict:
+    payload = json.loads(stdout)
+    return {
+        "usage": payload.get("usage"),
+        "cost_usd": payload.get("total_cost_usd"),
+        "reply": payload.get("result"),
+    }
+
+
+def codex_result(stdout: str) -> dict:
+    events = [json.loads(line) for line in stdout.splitlines() if line.strip()]
+    completed = next((event for event in reversed(events) if event.get("type") == "turn.completed"), {})
+    messages = [
+        event["item"].get("text")
+        for event in events
+        if event.get("type") == "item.completed" and event.get("item", {}).get("type") == "agent_message"
+    ]
+    return {"usage": completed.get("usage"), "cost_usd": None, "reply": messages[-1] if messages else None}
+
+
+def run_agent(eval_: dict, config: str, run_dir: Path, agent: str, model: str | None) -> dict:
+    run_dir.mkdir(parents=True, exist_ok=True)
+    for name in eval_.get("files", []):
+        shutil.copy(INPUTS / name, run_dir / name)
+    out = run_dir / "solution.fsx"
+    prompt = build_prompt(eval_, config, out)
+    command = claude_command(prompt, model, config) if agent == "claude" else codex_command(prompt, model, config)
+    env = os.environ.copy()
+    if agent == "claude":
+        env = {k: v for k, v in env.items() if not k.startswith(("CLAUDE_CODE", "CLAUDECODE"))}
     started = time.time()
     completed = subprocess.run(
         command, cwd=run_dir, env=env, stdin=subprocess.DEVNULL,
         capture_output=True, text=True, timeout=1800, check=False,
     )
-    record = {"duration_s": round(time.time() - started, 1), "exit": completed.returncode}
+    record = {"agent": agent, "duration_s": round(time.time() - started, 1), "exit": completed.returncode}
+    parse_failed = False
     try:
-        payload = json.loads(completed.stdout)
-        record["usage"] = payload.get("usage")
-        record["cost_usd"] = payload.get("total_cost_usd")
-        record["reply"] = payload.get("result")
-    except json.JSONDecodeError:
+        record.update(claude_result(completed.stdout) if agent == "claude" else codex_result(completed.stdout))
+    except (json.JSONDecodeError, KeyError):
+        parse_failed = True
+    if parse_failed or completed.returncode:
         record["raw"] = completed.stdout[-2000:] + completed.stderr[-2000:]
     (run_dir / "run.json").write_text(json.dumps(record, indent=2))
     return record
@@ -87,8 +124,10 @@ def grade(eval_: dict, run_dir: Path, dotnet: str) -> dict:
         if run_json.exists():
             record = json.loads(run_json.read_text())
             if record.get("exit"):
-                errors.append(f"claude exit {record['exit']}: {record.get('raw', '').strip()[:80]}")
-        return {"compiled": False, "missing": True, "passed": 0, "total": len(eval_["checks"]), "errors": errors}
+                errors.append(f"{record.get('agent', 'claude')} exit {record['exit']}: {record.get('raw', '').strip()[:80]}")
+        result = {"compiled": False, "missing": True, "passed": 0, "total": len(eval_["checks"]), "errors": errors}
+        (run_dir / "grading.json").write_text(json.dumps(result, indent=2))
+        return result
     completed = subprocess.run([dotnet, "fsi", "--exec", str(solution)], capture_output=True, text=True, timeout=600, check=False)
     output = completed.stdout + completed.stderr
     (run_dir / "compile.log").write_text(output)
@@ -105,40 +144,118 @@ def grade(eval_: dict, run_dir: Path, dotnet: str) -> dict:
     return result
 
 
+def wilson_interval(passes: int, total: int) -> tuple[float, float, float]:
+    if total == 0:
+        return 0.0, 0.0, 0.0
+    z = 1.96
+    rate = passes / total
+    denominator = 1 + z * z / total
+    centre = (rate + z * z / (2 * total)) / denominator
+    margin = z * sqrt(rate * (1 - rate) / total + z * z / (4 * total * total)) / denominator
+    return rate, centre - margin, centre + margin
+
+
+def run_index(path: Path) -> int | None:
+    suffix = path.name.removeprefix("run-")
+    return int(suffix) if suffix.isdigit() else None
+
+
+def run_directories(workspace: Path, eval_: dict, config: str) -> list[Path]:
+    config_dir = workspace / eval_["id"] / config
+    return sorted(
+        (path for path in config_dir.glob("run-*") if path.is_dir()),
+        key=lambda path: (run_index(path) if run_index(path) is not None else sys.maxsize, path.name),
+    )
+
+
+def remove_stale_runs(workspace: Path, eval_: dict, config: str, repeats: int) -> None:
+    for run_dir in run_directories(workspace, eval_, config):
+        index = run_index(run_dir)
+        if index is not None and index > repeats:
+            shutil.rmtree(run_dir)
+            print(f"removed {run_dir}")
+
+
+def print_verbose(rows: list[tuple[str, str, dict, Path]]) -> None:
+    print(f"{'eval':26}{'config':12}{'run':9}{'compile':10}{'checks':10}{'seconds':9}errors")
+    for eval_id, config, grading, run_dir in rows:
+        run_json = run_dir / "run.json"
+        seconds = ""
+        if run_json.exists():
+            seconds = str(json.loads(run_json.read_text()).get("duration_s", ""))
+        state = "missing" if grading["missing"] else "ok" if grading["compiled"] else "FAILED"
+        checks = f"{grading['passed']}/{grading['total']}"
+        print(
+            f"{eval_id:26}{config:12}{run_dir.name:9}{state:10}"
+            f"{checks:10}{seconds:9}{','.join(grading['errors'])}"
+        )
+    print()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--model", default="sonnet", help="model passed to claude -p (default: sonnet)")
+    parser.add_argument("--agent", choices=("claude", "codex"), default="claude", help="generator CLI (default: claude)")
+    parser.add_argument("--model", help="generator model (default: sonnet for Claude, Codex configuration for Codex)")
     parser.add_argument("--workspace", type=Path, default=ROOT / "evals" / "workspace", help="where runs are stored")
     parser.add_argument("--only", nargs="*", default=None, help="eval ids to run (default: all)")
     parser.add_argument("--configs", nargs="*", default=list(CONFIGS), choices=CONFIGS)
     parser.add_argument("--grade-only", action="store_true", help="skip generation; compile and grade existing runs")
-    parser.add_argument("--jobs", type=int, default=4, help="parallel claude runs")
+    parser.add_argument("--repeats", type=int, default=1, help="runs per eval and configuration (default: 1)")
+    parser.add_argument("--verbose", action="store_true", help="print diagnostics for every run")
+    parser.add_argument("--jobs", type=int, default=4, help="parallel generator runs")
     parser.add_argument("--dotnet", default="dotnet")
     args = parser.parse_args()
+    if args.repeats < 1:
+        parser.error("--repeats must be at least 1")
 
     evals = json.loads((ROOT / "evals" / "evals.json").read_text())["evals"]
     if args.only:
         evals = [e for e in evals if e["id"] in args.only]
-    jobs = [(e, c, args.workspace / e["id"] / c) for e in evals for c in args.configs]
+    if args.grade_only:
+        jobs = []
+        for eval_ in evals:
+            for config in args.configs:
+                config_dir = args.workspace / eval_["id"] / config
+                run_dirs = run_directories(args.workspace, eval_, config)
+                if config_dir.is_dir() and not run_dirs:
+                    print(f"warning: no run-* directories in {config_dir}", file=sys.stderr)
+                jobs.extend((eval_, config, run_dir) for run_dir in run_dirs)
+    else:
+        for eval_ in evals:
+            for config in args.configs:
+                remove_stale_runs(args.workspace, eval_, config, args.repeats)
+        jobs = [
+            (e, c, args.workspace / e["id"] / c / f"run-{run}")
+            for e in evals
+            for c in args.configs
+            for run in range(1, args.repeats + 1)
+        ]
 
     if not args.grade_only:
         with ThreadPoolExecutor(max_workers=args.jobs) as pool:
-            list(pool.map(lambda job: run_claude(job[0], job[1], job[2], args.model), jobs))
+            list(pool.map(lambda job: run_agent(job[0], job[1], job[2], args.agent, args.model), jobs))
 
     rows = [(e["id"], c, grade(e, d, args.dotnet), d) for e, c, d in jobs]
-    print(f"{'eval':26}{'config':12}{'compile':10}{'checks':8}{'seconds':9}errors")
-    for eval_id, config, g, run_dir in rows:
-        seconds = ""
-        run_json = run_dir / "run.json"
-        if run_json.exists():
-            seconds = str(json.loads(run_json.read_text()).get("duration_s", ""))
-        state = "missing" if g["missing"] else "ok" if g["compiled"] else "FAILED"
-        print(f"{eval_id:26}{config:12}{state:10}{g['passed']}/{g['total']:<6}{seconds:9}{','.join(g['errors'])}")
+    if args.verbose:
+        print_verbose(rows)
+    widths = {config: max(18, len(config) + 2) for config in args.configs}
+    print(f"{'eval':26}" + "".join(f"{config:{widths[config]}}" for config in args.configs))
+    for eval_ in evals:
+        cells = []
+        for config in args.configs:
+            mine = [g for eval_id, c, g, _ in rows if eval_id == eval_["id"] and c == config]
+            full = sum(g["compiled"] and g["passed"] == g["total"] for g in mine)
+            cells.append(f"{full}/{len(mine)}")
+        print(f"{eval_['id']:26}" + "".join(f"{cell:{widths[config]}}" for cell, config in zip(cells, args.configs)))
     print()
     for config in args.configs:
         mine = [g for _, c, g, _ in rows if c == config]
-        full = sum(1 for g in mine if g["compiled"] and g["passed"] == g["total"])
-        print(f"{config}: {full}/{len(mine)} evals fully passing")
+        if not mine:
+            print(f"{config}: no runs")
+            continue
+        full = sum(g["compiled"] and g["passed"] == g["total"] for g in mine)
+        rate, low, high = wilson_interval(full, len(mine))
+        print(f"{config}: {full}/{len(mine)} runs fully passing, {rate:.1%} ({low:.1%}-{high:.1%})")
     return 0
 
 

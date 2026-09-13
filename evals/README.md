@@ -44,6 +44,7 @@ their paths.
 Empty configuration summaries say `no runs`. Add `--verbose` to print compile
 state, checks, duration, and F# errors for every run before the aggregate
 table. The workspace is ignored by git.
+Run the tests with `python3 -m unittest evals.test_run_ab`.
 
 Claude Code is the default generator and uses `sonnet` unless `--model` is
 set. Codex uses the model from its configuration unless `--model` is set.

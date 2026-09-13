@@ -105,11 +105,12 @@ def run_agent(eval_: dict, config: str, run_dir: Path, agent: str, model: str | 
         capture_output=True, text=True, timeout=1800, check=False,
     )
     record = {"agent": agent, "duration_s": round(time.time() - started, 1), "exit": completed.returncode}
+    parse_failed = False
     try:
         record.update(claude_result(completed.stdout) if agent == "claude" else codex_result(completed.stdout))
     except (json.JSONDecodeError, KeyError):
-        record["raw"] = completed.stdout[-2000:] + completed.stderr[-2000:]
-    if completed.returncode and "raw" not in record:
+        parse_failed = True
+    if parse_failed or completed.returncode:
         record["raw"] = completed.stdout[-2000:] + completed.stderr[-2000:]
     (run_dir / "run.json").write_text(json.dumps(record, indent=2))
     return record
@@ -154,18 +155,23 @@ def wilson_interval(passes: int, total: int) -> tuple[float, float, float]:
     return rate, centre - margin, centre + margin
 
 
+def run_index(path: Path) -> int | None:
+    suffix = path.name.removeprefix("run-")
+    return int(suffix) if suffix.isdigit() else None
+
+
 def run_directories(workspace: Path, eval_: dict, config: str) -> list[Path]:
     config_dir = workspace / eval_["id"] / config
     return sorted(
         (path for path in config_dir.glob("run-*") if path.is_dir()),
-        key=lambda path: (int(path.name[4:]) if path.name[4:].isdigit() else sys.maxsize, path.name),
+        key=lambda path: (run_index(path) if run_index(path) is not None else sys.maxsize, path.name),
     )
 
 
 def remove_stale_runs(workspace: Path, eval_: dict, config: str, repeats: int) -> None:
     for run_dir in run_directories(workspace, eval_, config):
-        index = run_dir.name.removeprefix("run-")
-        if index.isdigit() and int(index) > repeats:
+        index = run_index(run_dir)
+        if index is not None and index > repeats:
             shutil.rmtree(run_dir)
             print(f"removed {run_dir}")
 

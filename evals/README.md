@@ -16,8 +16,8 @@ validation semantics, domain containers, codecs, and async routing. Their domain
 differ from the recipes. Output matching is only a smoke test, so inspect
 generated source for hardcoded output and attribution claims.
 
-`run_ab.py` runs every task through `claude -p` with one model and two
-configurations. The `with_skill` runs are told to read
+`run_ab.py` runs every task through Claude Code or Codex with one model and
+two configurations. The `with_skill` runs are told to read
 `fsharpplus/SKILL.md` first; the `baseline` runs are not. Neither may run
 dotnet, so the difference is what the skill contributes as knowledge. The
 runner then compiles each `solution.fsx` with `dotnet fsi`, checks the output,
@@ -26,6 +26,8 @@ passes, total runs, pass rates, and 95% Wilson score intervals.
 
 ```sh
 python3 evals/run_ab.py --model sonnet
+python3 evals/run_ab.py --agent codex
+python3 evals/run_ab.py --agent codex --model MODEL
 python3 evals/run_ab.py --only extend-tree --repeats 2
 python3 evals/run_ab.py --only extend-tree readert-stack --configs with_skill
 python3 evals/run_ab.py --grade-only     # recompile every existing run
@@ -33,9 +35,15 @@ python3 evals/run_ab.py --grade-only     # recompile every existing run
 
 `--repeats N` generates `N` runs per task and configuration; its default is
 one. Runs land in `evals/workspace/<eval>/<config>/run-<k>/` with the solution,
-the `claude -p` result (`run.json`), the compiler output, and `grading.json`.
+the generator result (`run.json`), the compiler output, and `grading.json`.
 `--grade-only` grades every `run-*` directory it finds, independently of
 `--repeats`. The workspace is ignored by git.
+
+Claude Code is the default generator and uses `sonnet` unless `--model` is
+set. Codex uses the model from its configuration unless `--model` is set.
+Both generators are instructed not to run `dotnet`; Codex uses its
+`workspace-write` sandbox. Codex reports token usage in `run.json`, but does
+not report `cost_usd`, so that value is null.
 
 ## Reading the results
 

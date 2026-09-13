@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Measure whether the fsharpplus skill improves generated F#+ code.
 
-Each eval prompt runs through `claude -p` with the same model in two
+Each eval prompt runs through Claude Code or Codex with the same model in two
 configurations: one told to read the skill first and one without the skill.
 Neither configuration may execute dotnet, so the comparison isolates what the
 skill contributes as knowledge. Every solution.fsx is then compiled with
@@ -49,33 +49,67 @@ def build_prompt(eval_: dict, config: str, out: Path) -> str:
     return prefix + eval_["prompt"] + COMMON_RULES.format(out=out, skill_clause=skill_clause)
 
 
-def run_claude(eval_: dict, config: str, run_dir: Path, model: str) -> dict:
-    run_dir.mkdir(parents=True, exist_ok=True)
-    for name in eval_.get("files", []):
-        shutil.copy(INPUTS / name, run_dir / name)
-    out = run_dir / "solution.fsx"
+def claude_command(prompt: str, model: str | None, config: str) -> list[str]:
     command = [
-        "claude", "-p", build_prompt(eval_, config, out),
-        "--model", model,
+        "claude", "-p", prompt,
+        "--model", model or "sonnet",
         "--permission-mode", "acceptEdits",
         "--allowedTools", "Read,Write,Edit,Glob,Grep",
         "--output-format", "json",
     ]
     if config == "with_skill":
         command += ["--add-dir", str(SKILL_DIR)]
-    env = {k: v for k, v in os.environ.items() if not k.startswith(("CLAUDE_CODE", "CLAUDECODE"))}
+    return command
+
+
+def codex_command(prompt: str, model: str | None, config: str) -> list[str]:
+    command = ["codex", "exec", "--json", "--sandbox", "workspace-write", "--skip-git-repo-check"]
+    if model:
+        command += ["--model", model]
+    if config == "with_skill":
+        command += ["--add-dir", str(SKILL_DIR)]
+    return command + [prompt]
+
+
+def claude_result(stdout: str) -> dict:
+    payload = json.loads(stdout)
+    return {
+        "usage": payload.get("usage"),
+        "cost_usd": payload.get("total_cost_usd"),
+        "reply": payload.get("result"),
+    }
+
+
+def codex_result(stdout: str) -> dict:
+    events = [json.loads(line) for line in stdout.splitlines() if line.strip()]
+    completed = next((event for event in reversed(events) if event.get("type") == "turn.completed"), {})
+    messages = [
+        event["item"].get("text")
+        for event in events
+        if event.get("type") == "item.completed" and event.get("item", {}).get("type") == "agent_message"
+    ]
+    return {"usage": completed.get("usage"), "cost_usd": None, "reply": messages[-1] if messages else None}
+
+
+def run_agent(eval_: dict, config: str, run_dir: Path, agent: str, model: str | None) -> dict:
+    run_dir.mkdir(parents=True, exist_ok=True)
+    for name in eval_.get("files", []):
+        shutil.copy(INPUTS / name, run_dir / name)
+    out = run_dir / "solution.fsx"
+    prompt = build_prompt(eval_, config, out)
+    command = claude_command(prompt, model, config) if agent == "claude" else codex_command(prompt, model, config)
+    env = os.environ.copy()
+    if agent == "claude":
+        env = {k: v for k, v in env.items() if not k.startswith(("CLAUDE_CODE", "CLAUDECODE"))}
     started = time.time()
     completed = subprocess.run(
         command, cwd=run_dir, env=env, stdin=subprocess.DEVNULL,
         capture_output=True, text=True, timeout=1800, check=False,
     )
-    record = {"duration_s": round(time.time() - started, 1), "exit": completed.returncode}
+    record = {"agent": agent, "duration_s": round(time.time() - started, 1), "exit": completed.returncode}
     try:
-        payload = json.loads(completed.stdout)
-        record["usage"] = payload.get("usage")
-        record["cost_usd"] = payload.get("total_cost_usd")
-        record["reply"] = payload.get("result")
-    except json.JSONDecodeError:
+        record.update(claude_result(completed.stdout) if agent == "claude" else codex_result(completed.stdout))
+    except (json.JSONDecodeError, KeyError):
         record["raw"] = completed.stdout[-2000:] + completed.stderr[-2000:]
     (run_dir / "run.json").write_text(json.dumps(record, indent=2))
     return record
@@ -89,7 +123,7 @@ def grade(eval_: dict, run_dir: Path, dotnet: str) -> dict:
         if run_json.exists():
             record = json.loads(run_json.read_text())
             if record.get("exit"):
-                errors.append(f"claude exit {record['exit']}: {record.get('raw', '').strip()[:80]}")
+                errors.append(f"{record.get('agent', 'claude')} exit {record['exit']}: {record.get('raw', '').strip()[:80]}")
         result = {"compiled": False, "missing": True, "passed": 0, "total": len(eval_["checks"]), "errors": errors}
         (run_dir / "grading.json").write_text(json.dumps(result, indent=2))
         return result
@@ -130,13 +164,14 @@ def run_directories(workspace: Path, eval_: dict, config: str) -> list[Path]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--model", default="sonnet", help="model passed to claude -p (default: sonnet)")
+    parser.add_argument("--agent", choices=("claude", "codex"), default="claude", help="generator CLI (default: claude)")
+    parser.add_argument("--model", help="generator model (default: sonnet for Claude, Codex configuration for Codex)")
     parser.add_argument("--workspace", type=Path, default=ROOT / "evals" / "workspace", help="where runs are stored")
     parser.add_argument("--only", nargs="*", default=None, help="eval ids to run (default: all)")
     parser.add_argument("--configs", nargs="*", default=list(CONFIGS), choices=CONFIGS)
     parser.add_argument("--grade-only", action="store_true", help="skip generation; compile and grade existing runs")
     parser.add_argument("--repeats", type=int, default=1, help="runs per eval and configuration (default: 1)")
-    parser.add_argument("--jobs", type=int, default=4, help="parallel claude runs")
+    parser.add_argument("--jobs", type=int, default=4, help="parallel generator runs")
     parser.add_argument("--dotnet", default="dotnet")
     args = parser.parse_args()
     if args.repeats < 1:
@@ -162,7 +197,7 @@ def main() -> int:
 
     if not args.grade_only:
         with ThreadPoolExecutor(max_workers=args.jobs) as pool:
-            list(pool.map(lambda job: run_claude(job[0], job[1], job[2], args.model), jobs))
+            list(pool.map(lambda job: run_agent(job[0], job[1], job[2], args.agent, args.model), jobs))
 
     rows = [(e["id"], c, grade(e, d, args.dotnet), d) for e, c, d in jobs]
     widths = {config: max(18, len(config) + 2) for config in args.configs}

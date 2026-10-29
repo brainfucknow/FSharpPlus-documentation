@@ -1,0 +1,15 @@
+{
+  "comment": [
+    "Pinned upstream revision that every file:line citation in this repo refers to.",
+    "Line numbers drift as master moves, so citations are only meaningful against a fixed",
+    "commit. CI checks citations against this pin as a hard gate, and separately warns when",
+    "master has moved away from it (see .github/workflows/verify.yml).",
+    "To move the pin: update 'sha' to the release tag commit, run tools/verify.sh, and fix stale claims."
+  ],
+  "repo": "https://github.com/fsprojects/FSharpPlus.git",
+  "sha": "d1643d2ac9346c6b2e6bf52765a0648177b5ed9e",
+  "sha_date": "2026-01-11",
+  "sha_subject": "Revert string renames",
+  "release": "1.9.1",
+  "package_version": "1.9.1"
+}

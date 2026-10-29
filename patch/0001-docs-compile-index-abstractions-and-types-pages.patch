@@ -1,4 +1,4 @@
-From 2548e56a57dd2a404241a27ff159060143d75524 Mon Sep 17 00:00:00 2001
+From 75c6652730804fa7f53ed37302c297310600096b Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sun, 26 Jul 2026 04:36:35 +0000
 Subject: [PATCH 1/5] docs: compile index, abstractions and types pages
@@ -18,7 +18,7 @@ All three compile as-is; this only adds them to the project.
  1 file changed, 9 insertions(+)
 
 diff --git a/src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj b/src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj
-index 69477d2..36bbab1 100644
+index d0eb6ae..2629b57 100644
 --- a/src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj
 +++ b/src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj
 @@ -13,6 +13,15 @@

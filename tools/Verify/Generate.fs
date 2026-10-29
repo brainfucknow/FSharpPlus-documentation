@@ -64,6 +64,12 @@ let lint (snippets: Snippet list) =
 let private fsString (s: string) =
     "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\""
 
+/// sprintf %A does not escape embedded quotes, so its output cannot reliably be tokenised into
+/// quoted literals. Preserve the entire rendering when it contains quotes; only values without
+/// strings can safely ignore formatting whitespace. This avoids accepting incorrect string data.
+let private normaliseValueSource =
+    """let norm (s: string) = if s.Contains '\"' then s.Trim() else Regex.Replace(s.Trim(), @"\s+", " ")"""
+
 /// Emitted unindented. The project target nests these inside `let main _ =` and so must indent them;
 /// the FSI script has them at top level and must NOT, or they are parsed as a continuation of the
 /// preceding `module X =` block and every module reference resolves inside itself.
@@ -103,8 +109,8 @@ let generateProject (snippets: Snippet list) (out: string) (packageVersion: stri
               "let mutable passes = 0"
               ""
               "/// FSI's `val x : T = v` rendering and sprintf \"%A\" agree for the shapes we document,"
-              "/// but not on incidental whitespace, so compare normalised."
-              "let private norm (s: string) = Regex.Replace(s.Trim(), @\"\\s+\", \" \")"
+              "/// Values containing strings preserve all whitespace; other formatting is normalised."
+              normaliseValueSource
               ""
               "let check (where: string) (label: string) (actual: string) (expected: string) ="
               "    if norm actual = norm expected then"
@@ -133,12 +139,9 @@ let generateProject (snippets: Snippet list) (out: string) (packageVersion: stri
               "  <PropertyGroup>"
               "    <OutputType>Exe</OutputType>"
               "    <TargetFramework>net8.0</TargetFramework>"
-              "    <!-- Compile against net8.0 (upstream's TFM) but allow the app to RUN on a newer"
-              "         major runtime. Cloud containers may only ship a later SDK - e.g. Ubuntu 24.04's"
-              "         dotnet-sdk-10.0, the only route available when the egress proxy blocks the usual"
-              "         dotnet download hosts. Without this, the build succeeds and `dotnet run` dies"
-              "         with \"Framework 'Microsoft.NETCore.App', version '8.0.0' not found\". No effect"
-              "         where the net8.0 runtime is present. -->"
+              "    <!-- This verifier targets net8.0; use the repository's SDK pin for checks."
+              "         Runtime roll-forward supports executing a built artifact on newer runtimes;"
+              "         it does not replace the pinned compiler used to verify examples. -->"
               "    <RollForward>LatestMajor</RollForward>"
               "    <!-- FS0064 = \"this construct is less generic than indicated\". The plan wants this as"
               "         an error: it is the warning that fires when a generic example silently degrades"
@@ -172,7 +175,7 @@ let generateFsi (snippets: Snippet list) (out: string) (packageVersion: string) 
           ""
           "let mutable failures = 0"
           "let mutable passes = 0"
-          "let norm (s: string) = Regex.Replace(s.Trim(), @\"\\s+\", \" \")"
+          normaliseValueSource
           ""
           "let check (where: string) (label: string) (actual: string) (expected: string) ="
           "    if norm actual = norm expected then passes <- passes + 1"

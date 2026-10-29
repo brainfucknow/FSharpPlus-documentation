@@ -17,24 +17,30 @@ if [[ "${1:-}" == "--no-dotnet" ]]; then
 --no-dotnet is no longer available: the checks themselves are an F# project now, so there is no
 Python fallback to fall back to.
 
-In a cloud container the usual .NET installers are typically blocked by the egress proxy - dot.net,
-builds.dotnet.microsoft.com, aka.ms and dotnetcli.azureedge.net all 403 on CONNECT, so
-dotnet-install.sh cannot work. Do not fight the proxy; the Ubuntu 24.04 archive carries the SDK:
-
-    apt-get update                     # refresh first or the .deb URLs 404
-    apt-get install -y dotnet-sdk-8.0  # matches upstream's global.json pin
-
+Install .NET SDK 8.0.425 using Microsoft's official installer or a supported package source,
+and make Python 3 available on PATH. Network access depends on the current environment's policy;
+retain TLS verification and the configured proxy when diagnosing download failures.
 See the "Running the checks locally" section of README.md.
 EOF
   exit 2
 fi
 
 if ! command -v dotnet >/dev/null 2>&1; then
-  echo "error: dotnet not found. Install the SDK first:" >&2
-  echo "    apt-get update && apt-get install -y dotnet-sdk-8.0" >&2
+  echo "error: dotnet not found. Install .NET SDK 8.0.425 and add it to PATH." >&2
   echo "See the 'Running the checks locally' section of README.md." >&2
   exit 2
 fi
+
+if [[ "$(dotnet --version)" != "8.0.425" ]]; then
+  echo "error: verification requires .NET SDK 8.0.425 for stable F# diagnostics." >&2
+  exit 2
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "error: python3 not found. Install Python 3 before running verification." >&2
+  exit 2
+fi
+export PYTHONDONTWRITEBYTECODE=1
 
 # Read the pin with grep rather than a JSON parser: this runs before the tool is built, and pulling
 # in an interpreter just to read two fields would reintroduce the dependency this script shed.
@@ -61,6 +67,10 @@ dotnet build tools/Verify/Verify.fsproj -c Release --nologo -v quiet
 VERIFY="dotnet tools/Verify/bin/Release/net8.0/verify.dll"
 
 echo
+echo "==> verification tool regression tests"
+python3 -m unittest discover -s tools -p 'test_verifier*.py'
+
+echo
 $VERIFY claims --upstream "$UPSTREAM"
 
 echo
@@ -68,7 +78,7 @@ echo "==> coverage gap"
 # Captured rather than piped to head: under `set -o pipefail` a closing head sends SIGPIPE and the
 # whole script would report failure on a passing check.
 gap_out=$($VERIFY gap --upstream "$UPSTREAM" \
-  --covered-by reference/generic-functions.md --max-gap 53)
+  --covered-by reference/generic-functions.md --max-gap 54)
 printf '%s\n' "$gap_out" | sed -n '1,3p'
 
 echo
@@ -87,4 +97,12 @@ dotnet run --project build/verify/verify.fsproj -c Release --no-build
 # and FSI is how a user actually pastes a snippet, so passing one is not passing both.
 echo
 echo "==> executing value assertions (dotnet fsi target)"
-dotnet fsi --nologo build/verify/verify.fsx
+dotnet fsi --nologo --warnaserror:64,44 build/verify/verify.fsx
+
+echo
+echo "==> skill examples (including expected failures and output)"
+python3 scripts/verify_fsharpplus_examples.py
+
+echo
+echo "==> evaluation runner regression tests"
+python3 -m unittest evals.test_run_ab

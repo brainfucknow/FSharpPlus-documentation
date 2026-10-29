@@ -1,8 +1,9 @@
 # F#+ cheat sheet (for context windows)
 
-Verified against `fsprojects/FSharpPlus` `master` — **1.9.1, January 2026**.
-Source-derived (line-cited); **not compile-verified** — no F# toolchain was available where this was
-written. Fuller tables: [`reference/`](reference/).
+Targets **FSharpPlus 1.9.1**, at the release commit in [`upstream.json`](upstream.json).
+The tables are source-derived and checked against that pin; examples tagged `fsharp verify` in
+[`reference/`](reference/) are compiled and executed in both project and FSI targets. This compact
+summary also contains schematic, untagged examples; it is not itself an executable snippet suite.
 
 ---
 
@@ -68,7 +69,7 @@ additively → `monad.plus'`.
 ```
 <!>   f <!> x        map, function first        (same as <<|)
 |>>   x |>> f        map, value first
-|!>   x |!> v        replace value
+map (fun _ -> v) x  replace value
 ```
 ### Applicative
 ```
@@ -107,12 +108,15 @@ x </f/> y     ==     f x y
 
 ## Names that do **not** exist
 
-`fmap` · `pure` · `liftA` · `liftA2` · `forM` · `sequence_` · `traverse_` · `asyncResult` ·
+`fmap` · `pure` · `liftA` · `forM` · `sequence_` · `traverse_` · `asyncResult` ·
 `taskResult` · `sequenceResult` · `traverseResult` · `bindResult`
 
 Use instead: `map` · `result`/`pur` · `lift2`/`lift3` · `traverse` · `sequence` · `>>=`.
 
 `mapM` exists **only** as `SeqT.mapM` — not a global function. Use `traverse`.
+
+`liftA2` exists as an obsolete alias in 1.9.1; use `lift2` instead. The replacement operators `|!>`
+and `<!|` are not in the 1.9.1 release; use `map (fun _ -> value) source`.
 
 `<>` is **not** the monoid operator in F#+; `++` is.
 
@@ -134,7 +138,7 @@ pur x      // Pure.Invoke   — ZIP applicatives
 
 ---
 
-## Where annotations are mandatory
+## When inference needs an annotation
 
 The library is SRTP-heavy, so return-type annotations are frequently required to drive resolution. The
 CE builders are declared with an explicit type parameter — e.g. `monad<'``monad<'t>``>` — which is why
@@ -147,10 +151,10 @@ let (lstNumber: list<_>)  = monad.plus' { ... } // :57
 
 Annotate the **binding**, and prefer `Async<_>` over a fully-applied type so inference still does work.
 
-⚠️ This section is the one part of this cheat sheet that is a *generalisation from examples* rather than
-a restatement of a declaration. A precise "annotation is required here" table needs the compiler as
-oracle — it is Step 2's annotation-placement guide, and it is **not** done. Treat the rule above as a
-strong heuristic, not a verified contract.
+This guidance generalises from examples rather than restating a declaration. For compiler-checked
+failure cases and corrections, see the skill's [SRTP error guide](fsharpplus/references/srtp-errors.md).
+Do not annotate `let!` patterns inside transformer `monad` expressions; annotate the containing
+function's return type instead. A complete annotation-placement taxonomy remains future work.
 
 Two known hazards worth knowing while that gap is open:
 

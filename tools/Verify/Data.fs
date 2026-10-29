@@ -52,85 +52,85 @@ type Assertion = { File: string; Line: int; Contains: string; Claim: string }
 
 let assertions : Assertion list =
     [
-      { File = "Builders.fs"; Line = 257; Contains = "let monad<"; Claim = "monad -> MonadFxBuilder" }
-      { File = "Builders.fs"; Line = 257; Contains = "MonadFxBuilder"; Claim = "monad is the Fx (lazy) builder" }
-      { File = "Builders.fs"; Line = 260; Contains = "let monad'<"; Claim = "monad' exists" }
-      { File = "Builders.fs"; Line = 260; Contains = "MonadFxStrictBuilder"; Claim = "monad' -> MonadFxStrictBuilder (strict)" }
-      { File = "Builders.fs"; Line = 157; Contains = "_.strict"; Claim = "monad.strict exists on MonadFxBuilder" }
-      { File = "Builders.fs"; Line = 157; Contains = "MonadFxStrictBuilder"; Claim = "monad.strict == monad'" }
-      { File = "Builders.fs"; Line = 160; Contains = "_.plus"; Claim = "monad.plus exists" }
-      { File = "Builders.fs"; Line = 160; Contains = "MonadPlusBuilder"; Claim = "monad.plus is the lazy additive builder" }
-      { File = "Builders.fs"; Line = 163; Contains = "_.plus'"; Claim = "monad.plus' exists" }
-      { File = "Builders.fs"; Line = 163; Contains = "MonadPlusStrictBuilder"; Claim = "monad.plus' is the strict additive builder" }
-      { File = "Builders.fs"; Line = 166; Contains = "this.fx    = this"; Claim = "monad.fx returns this, so monad.fx == monad" }
-      { File = "Builders.fs"; Line = 169; Contains = "_.fx'"; Claim = "monad.fx' exists" }
-      { File = "Builders.fs"; Line = 169; Contains = "MonadFxStrictBuilder"; Claim = "monad.fx' == monad'" }
-      { File = "Builders.fs"; Line = 133; Contains = "_.strict"; Claim = "MonadPlusBuilder ALSO has .strict - the fifth spelling the plan missed" }
-      { File = "Builders.fs"; Line = 133; Contains = "MonadPlusStrictBuilder"; Claim = "monad.plus.strict == monad.plus'" }
-      { File = "Builders.fs"; Line = 99; Contains = "type MonadPlusStrictBuilder"; Claim = "MonadPlusStrictBuilder is a distinct builder type" }
-      { File = "Builders.fs"; Line = 114; Contains = "type MonadFxStrictBuilder"; Claim = "MonadFxStrictBuilder is a distinct builder type" }
-      { File = "Builders.fs"; Line = 130; Contains = "type MonadPlusBuilder"; Claim = "MonadPlusBuilder is a distinct builder type" }
-      { File = "Builders.fs"; Line = 155; Contains = "type MonadFxBuilder"; Claim = "MonadFxBuilder is a distinct builder type" }
-      { File = "Builders.fs"; Line = 263; Contains = "let applicative<"; Claim = "applicative CE (sequential, 1 layer)" }
-      { File = "Builders.fs"; Line = 266; Contains = "let applicative2<"; Claim = "applicative2 CE (sequential, 2 layers)" }
-      { File = "Builders.fs"; Line = 269; Contains = "let applicative3<"; Claim = "applicative3 CE (sequential, 3 layers)" }
-      { File = "Builders.fs"; Line = 271; Contains = "Use zapp instead"; Claim = "applicative' is obsolete, renamed to zapp" }
-      { File = "Builders.fs"; Line = 272; Contains = "let applicative'<"; Claim = "applicative' still defined (warning, not error - so it still compiles)" }
-      { File = "Builders.fs"; Line = 274; Contains = "Use zapp2 instead"; Claim = "applicative2' is obsolete, renamed to zapp2" }
-      { File = "Builders.fs"; Line = 277; Contains = "Use zapp3 instead"; Claim = "applicative3' is obsolete, renamed to zapp3" }
-      { File = "Builders.fs"; Line = 281; Contains = "let zapp<"; Claim = "zapp is the current name" }
-      { File = "Builders.fs"; Line = 284; Contains = "let zapp2<"; Claim = "zapp2 is the current name" }
-      { File = "Builders.fs"; Line = 287; Contains = "let zapp3<"; Claim = "zapp3 is the current name" }
-      { File = "Builders.fs"; Line = 208; Contains = "result >> result"; Claim = "SEQUENTIAL applicative builders lift with result" }
-      { File = "Builders.fs"; Line = 229; Contains = "pur x"; Claim = "ZIP applicative builders lift with pur, not result" }
-      { File = "Builders.fs"; Line = 239; Contains = "pur >> pur"; Claim = "zapp2 lifts with pur" }
-      { File = "Builders.fs"; Line = 249; Contains = "pur >> pur >> pur"; Claim = "zapp3 lifts with pur" }
-      { File = "Builders.fs"; Line = 142; Contains = "Check the type is lazy"; Claim = "MonadPlusBuilder.While probes laziness at compile time" }
-      { File = "Builders.fs"; Line = 17; Contains = "AutoOpen"; Claim = "GenericBuilders is AutoOpen - CEs come from 'open FSharpPlus'" }
-      { File = "Operators.fs"; Line = 9; Contains = "AutoOpen"; Claim = "Operators is AutoOpen - generic functions come from 'open FSharpPlus'" }
-      { File = "Operators.fs"; Line = 219; Contains = "let inline result"; Claim = "result is the monad/sequential-applicative lift" }
-      { File = "Operators.fs"; Line = 219; Contains = "Return.Invoke"; Claim = "result is backed by Return" }
-      { File = "Operators.fs"; Line = 263; Contains = "let inline pur"; Claim = "pur is the zip-applicative lift - a DIFFERENT function from result" }
-      { File = "Operators.fs"; Line = 263; Contains = "Pure.Invoke"; Claim = "pur is backed by Pure, not Return" }
-      { File = "Operators.fs"; Line = 141; Contains = "(<!>)"; Claim = "<!> is map with the function first" }
-      { File = "Operators.fs"; Line = 154; Contains = "(|>>)"; Claim = "|>> is map with the value first" }
-      { File = "Operators.fs"; Line = 225; Contains = "(<*>)"; Claim = "<*> is sequential apply" }
-      { File = "Operators.fs"; Line = 243; Contains = "( *>)"; Claim = "*> keeps the right value" }
-      { File = "Operators.fs"; Line = 249; Contains = "(<*  )"; Claim = "<* keeps the left value" }
-      { File = "Operators.fs"; Line = 270; Contains = "(<.>)"; Claim = "<.> is zip apply" }
-      { File = "Operators.fs"; Line = 288; Contains = "(.>)"; Claim = ".> keeps the right value (zip)" }
-      { File = "Operators.fs"; Line = 294; Contains = "(<.)"; Claim = "<. keeps the left value (zip)" }
-      { File = "Operators.fs"; Line = 338; Contains = "(>>=)"; Claim = ">>= is bind, value first" }
-      { File = "Operators.fs"; Line = 344; Contains = "(=<<)"; Claim = "=<< is bind, function first" }
-      { File = "Operators.fs"; Line = 350; Contains = "(>=>)"; Claim = ">=> is left-to-right Kleisli" }
-      { File = "Operators.fs"; Line = 356; Contains = "(<=<)"; Claim = "<=< is right-to-left Kleisli" }
-      { File = "Operators.fs"; Line = 389; Contains = "(++)"; Claim = "++ is the monoid operator (not <>)" }
-      { File = "Operators.fs"; Line = 389; Contains = "Plus.Invoke"; Claim = "++ is backed by Plus" }
-      { File = "Operators.fs"; Line = 425; Contains = "(<|>)"; Claim = "<|> combines alternatives" }
-      { File = "Operators.fs"; Line = 1023; Contains = "(=>>)"; Claim = "=>> is comonadic extend" }
-      { File = "Operators.fs"; Line = 301; Contains = "(<<||)"; Claim = "<<|| is map2, function first, tupled" }
-      { File = "Operators.fs"; Line = 308; Contains = "(||>>)"; Claim = "||>> is map2, tupled" }
-      { File = "Operators.fs"; Line = 315; Contains = "(<<|||)"; Claim = "<<||| is map3, function first, tupled" }
-      { File = "Operators.fs"; Line = 322; Contains = "(|||>>)"; Claim = "|||>> is map3, tupled" }
-      { File = "Operators.fs"; Line = 54; Contains = "(</)"; Claim = "</ opens infix function application" }
-      { File = "Operators.fs"; Line = 60; Contains = "(/>)"; Claim = "/> closes infix function application" }
-      { File = "Operators.fs"; Line = 231; Contains = "let inline lift2"; Claim = "lift2 exists (use instead of Haskell liftA2)" }
-      { File = "Lens.fs"; Line = 9; Contains = "module Lens"; Claim = "Lens is a plain module - NOT AutoOpen" }
-      { File = "Lens.fs"; Line = 229; Contains = "(^.)"; Claim = "^. is view, source on the left" }
-      { File = "Lens.fs"; Line = 235; Contains = "(.->)"; Claim = ".-> is setl, lens on the left" }
-      { File = "Lens.fs"; Line = 241; Contains = "(%->)"; Claim = "%-> is over, lens on the left" }
-      { File = "Lens.fs"; Line = 247; Contains = "(^?)"; Claim = "^? is preview, returns option" }
-      { File = "Lens.fs"; Line = 250; Contains = "(^..)"; Claim = "^.. is toListOf" }
-      { File = "Lens.fs"; Line = 256; Contains = "(<&>)"; Claim = "<&> lives in FSharpPlus.Lens, not FSharpPlus" }
+      { File = "Builders.fs"; Line = 344; Contains = "let monad<"; Claim = "monad -> MonadFxBuilder" }
+      { File = "Builders.fs"; Line = 344; Contains = "MonadFxBuilder"; Claim = "monad is the Fx (lazy) builder" }
+      { File = "Builders.fs"; Line = 347; Contains = "let monad'<"; Claim = "monad' exists" }
+      { File = "Builders.fs"; Line = 347; Contains = "MonadFxStrictBuilder"; Claim = "monad' -> MonadFxStrictBuilder (strict)" }
+      { File = "Builders.fs"; Line = 244; Contains = "_.strict"; Claim = "monad.strict exists on MonadFxBuilder" }
+      { File = "Builders.fs"; Line = 244; Contains = "MonadFxStrictBuilder"; Claim = "monad.strict == monad'" }
+      { File = "Builders.fs"; Line = 247; Contains = "_.plus"; Claim = "monad.plus exists" }
+      { File = "Builders.fs"; Line = 247; Contains = "MonadPlusBuilder"; Claim = "monad.plus is the lazy additive builder" }
+      { File = "Builders.fs"; Line = 250; Contains = "_.plus'"; Claim = "monad.plus' exists" }
+      { File = "Builders.fs"; Line = 250; Contains = "MonadPlusStrictBuilder"; Claim = "monad.plus' is the strict additive builder" }
+      { File = "Builders.fs"; Line = 253; Contains = "this.fx    = this"; Claim = "monad.fx returns this, so monad.fx == monad" }
+      { File = "Builders.fs"; Line = 256; Contains = "_.fx'"; Claim = "monad.fx' exists" }
+      { File = "Builders.fs"; Line = 256; Contains = "MonadFxStrictBuilder"; Claim = "monad.fx' == monad'" }
+      { File = "Builders.fs"; Line = 220; Contains = "_.strict"; Claim = "MonadPlusBuilder ALSO has .strict - the fifth spelling the plan missed" }
+      { File = "Builders.fs"; Line = 220; Contains = "MonadPlusStrictBuilder"; Claim = "monad.plus.strict == monad.plus'" }
+      { File = "Builders.fs"; Line = 186; Contains = "type MonadPlusStrictBuilder"; Claim = "MonadPlusStrictBuilder is a distinct builder type" }
+      { File = "Builders.fs"; Line = 201; Contains = "type MonadFxStrictBuilder"; Claim = "MonadFxStrictBuilder is a distinct builder type" }
+      { File = "Builders.fs"; Line = 217; Contains = "type MonadPlusBuilder"; Claim = "MonadPlusBuilder is a distinct builder type" }
+      { File = "Builders.fs"; Line = 242; Contains = "type MonadFxBuilder"; Claim = "MonadFxBuilder is a distinct builder type" }
+      { File = "Builders.fs"; Line = 350; Contains = "let applicative<"; Claim = "applicative CE (sequential, 1 layer)" }
+      { File = "Builders.fs"; Line = 353; Contains = "let applicative2<"; Claim = "applicative2 CE (sequential, 2 layers)" }
+      { File = "Builders.fs"; Line = 356; Contains = "let applicative3<"; Claim = "applicative3 CE (sequential, 3 layers)" }
+      { File = "Builders.fs"; Line = 358; Contains = "Use zapp instead"; Claim = "applicative' is obsolete, renamed to zapp" }
+      { File = "Builders.fs"; Line = 359; Contains = "let applicative'<"; Claim = "applicative' still defined (warning, not error - so it still compiles)" }
+      { File = "Builders.fs"; Line = 361; Contains = "Use zapp2 instead"; Claim = "applicative2' is obsolete, renamed to zapp2" }
+      { File = "Builders.fs"; Line = 364; Contains = "Use zapp3 instead"; Claim = "applicative3' is obsolete, renamed to zapp3" }
+      { File = "Builders.fs"; Line = 368; Contains = "let zapp<"; Claim = "zapp is the current name" }
+      { File = "Builders.fs"; Line = 371; Contains = "let zapp2<"; Claim = "zapp2 is the current name" }
+      { File = "Builders.fs"; Line = 374; Contains = "let zapp3<"; Claim = "zapp3 is the current name" }
+      { File = "Builders.fs"; Line = 295; Contains = "result >> result"; Claim = "SEQUENTIAL applicative builders lift with result" }
+      { File = "Builders.fs"; Line = 316; Contains = "pur x"; Claim = "ZIP applicative builders lift with pur, not result" }
+      { File = "Builders.fs"; Line = 326; Contains = "pur >> pur"; Claim = "zapp2 lifts with pur" }
+      { File = "Builders.fs"; Line = 336; Contains = "pur >> pur >> pur"; Claim = "zapp3 lifts with pur" }
+      { File = "Builders.fs"; Line = 229; Contains = "Check the type is lazy"; Claim = "MonadPlusBuilder.While probes laziness at compile time" }
+      { File = "Builders.fs"; Line = 99; Contains = "AutoOpen"; Claim = "GenericBuilders is AutoOpen - CEs come from 'open FSharpPlus'" }
+      { File = "Operators.fs"; Line = 8; Contains = "AutoOpen"; Claim = "Operators is AutoOpen - generic functions come from 'open FSharpPlus'" }
+      { File = "Operators.fs"; Line = 199; Contains = "let inline result"; Claim = "result is the monad/sequential-applicative lift" }
+      { File = "Operators.fs"; Line = 199; Contains = "Return.Invoke"; Claim = "result is backed by Return" }
+      { File = "Operators.fs"; Line = 252; Contains = "let inline pur"; Claim = "pur is the zip-applicative lift - a DIFFERENT function from result" }
+      { File = "Operators.fs"; Line = 252; Contains = "Pure.Invoke"; Claim = "pur is backed by Pure, not Return" }
+      { File = "Operators.fs"; Line = 142; Contains = "(<!>)"; Claim = "<!> is map with the function first" }
+      { File = "Operators.fs"; Line = 155; Contains = "(|>>)"; Claim = "|>> is map with the value first" }
+      { File = "Operators.fs"; Line = 205; Contains = "(<*>)"; Claim = "<*> is sequential apply" }
+      { File = "Operators.fs"; Line = 226; Contains = "( *>)"; Claim = "*> keeps the right value" }
+      { File = "Operators.fs"; Line = 232; Contains = "(<*  )"; Claim = "<* keeps the left value" }
+      { File = "Operators.fs"; Line = 259; Contains = "(<.>)"; Claim = "<.> is zip apply" }
+      { File = "Operators.fs"; Line = 277; Contains = "(.>)"; Claim = ".> keeps the right value (zip)" }
+      { File = "Operators.fs"; Line = 283; Contains = "(<.)"; Claim = "<. keeps the left value (zip)" }
+      { File = "Operators.fs"; Line = 328; Contains = "(>>=)"; Claim = ">>= is bind, value first" }
+      { File = "Operators.fs"; Line = 334; Contains = "(=<<)"; Claim = "=<< is bind, function first" }
+      { File = "Operators.fs"; Line = 340; Contains = "(>=>)"; Claim = ">=> is left-to-right Kleisli" }
+      { File = "Operators.fs"; Line = 346; Contains = "(<=<)"; Claim = "<=< is right-to-left Kleisli" }
+      { File = "Operators.fs"; Line = 379; Contains = "(++)"; Claim = "++ is the monoid operator (not <>)" }
+      { File = "Operators.fs"; Line = 379; Contains = "Plus.Invoke"; Claim = "++ is backed by Plus" }
+      { File = "Operators.fs"; Line = 415; Contains = "(<|>)"; Claim = "<|> combines alternatives" }
+      { File = "Operators.fs"; Line = 1002; Contains = "(=>>)"; Claim = "=>> is comonadic extend" }
+      { File = "Operators.fs"; Line = 290; Contains = "(<<||)"; Claim = "<<|| is map2, function first, tupled" }
+      { File = "Operators.fs"; Line = 297; Contains = "(||>>)"; Claim = "||>> is map2, tupled" }
+      { File = "Operators.fs"; Line = 304; Contains = "(<<|||)"; Claim = "<<||| is map3, function first, tupled" }
+      { File = "Operators.fs"; Line = 311; Contains = "(|||>>)"; Claim = "|||>> is map3, tupled" }
+      { File = "Operators.fs"; Line = 52; Contains = "(</)"; Claim = "</ opens infix function application" }
+      { File = "Operators.fs"; Line = 58; Contains = "(/>)"; Claim = "/> closes infix function application" }
+      { File = "Operators.fs"; Line = 211; Contains = "let inline lift2"; Claim = "lift2 exists (use instead of Haskell liftA2)" }
+      { File = "Lens.fs"; Line = 10; Contains = "module Lens"; Claim = "Lens is a plain module - NOT AutoOpen" }
+      { File = "Lens.fs"; Line = 236; Contains = "(^.)"; Claim = "^. is view, source on the left" }
+      { File = "Lens.fs"; Line = 242; Contains = "(.->)"; Claim = ".-> is setl, lens on the left" }
+      { File = "Lens.fs"; Line = 248; Contains = "(%->)"; Claim = "%-> is over, lens on the left" }
+      { File = "Lens.fs"; Line = 254; Contains = "(^?)"; Claim = "^? is preview, returns option" }
+      { File = "Lens.fs"; Line = 257; Contains = "(^..)"; Claim = "^.. is toListOf" }
+      { File = "Lens.fs"; Line = 263; Contains = "(<&>)"; Claim = "<&> lives in FSharpPlus.Lens, not FSharpPlus" }
       { File = "Parsing.fs"; Line = 5; Contains = "AutoOpen"; Claim = "Parsing is AutoOpen - tryParse comes from 'open FSharpPlus'" }
       { File = "Memoization.fs"; Line = 8; Contains = "AutoOpen"; Claim = "Memoization is AutoOpen" }
       { File = "String.fs"; Line = 4; Contains = "RequireQualifiedAccess"; Claim = "extension modules are RequireQualifiedAccess" }
       { File = "Generic.fs"; Line = 12; Contains = "module Generic"; Claim = "Math.Generic is a plain module - needs its own open" }
       { File = "Applicative.fs"; Line = 15; Contains = "module Applicative"; Claim = "Math.Applicative is a plain module" }
       { File = "Applicative.fs"; Line = 68; Contains = "module ZipApplicative"; Claim = "Math.ZipApplicative is a plain module" }
-      { File = "Seq.fs"; Line = 586; Contains = "let inline mapM"; Claim = "mapM exists ONLY as SeqT.mapM, not as a global function" }
-      { File = "ZipApplicative.fs"; Line = 44; Contains = "List.cycle"; Claim = "pur for list is List.cycle, i.e. conceptually infinite - so it has no finite // val demo" }
-      { File = "ZipApplicative.fs"; Line = 81; Contains = "List.map2Shortest"; Claim = "<.> on list zips element-wise, shortest-wins - the sequential_vs_zip snippet depends on this" }
+      { File = "Seq.fs"; Line = 607; Contains = "let inline mapM"; Claim = "mapM exists ONLY as SeqT.mapM, not as a global function" }
+      { File = "ZipApplicative.fs"; Line = 46; Contains = "List.cycle"; Claim = "pur for list is List.cycle, i.e. conceptually infinite - so it has no finite // val demo" }
+      { File = "ZipApplicative.fs"; Line = 84; Contains = "List.map2Shortest"; Claim = "<.> on list zips element-wise, shortest-wins - the sequential_vs_zip snippet depends on this" }
       { File = "Program.fs"; Line = 6; Contains = "let main argv"; Claim = "the docs harness entry point exists" }
       { File = "Program.fs"; Line = 7; Contains = "0"; Claim = "the docs harness body is just '0' - it executes nothing, so // val claims are never checked" }
       { File = "computation-expressions.fsx"; Line = 5; Contains = "monad {"; Claim = "CE page documents monad" }
@@ -143,10 +143,10 @@ let assertions : Assertion list =
       { File = "lens.fsx"; Line = 198; Contains = "length, traverse"; Claim = "the lens page notes inline that a second open is needed" }
       { File = "tutorial.fsx"; Line = 5; Contains = "#r"; Claim = "doc pages contain #r yet compile as <Compile> items - no #if guard needed" }
       { File = "index.fsx"; Line = 4; Contains = "#r"; Claim = "index.fsx is a real doc page with directives" }
-      { File = "RELEASE_NOTES.md"; Line = 8; Contains = "(.>)"; Claim = ".> and <. were added in 1.9.1" }
-      { File = "RELEASE_NOTES.md"; Line = 10; Contains = "zapp"; Claim = "the zapp rename shipped in 1.9.1" }
-      { File = "RELEASE_NOTES.md"; Line = 18; Contains = "||>>"; Claim = "map2/map3 operators were added in 1.8.0" }
-      { File = "dotnetcore.yml"; Line = 98; Contains = "AllDocs"; Claim = "CI runs the AllDocs target" }
+      { File = "RELEASE_NOTES.md"; Line = 9; Contains = "(.>)"; Claim = ".> and <. were added in 1.9.1" }
+      { File = "RELEASE_NOTES.md"; Line = 11; Contains = "zapp"; Claim = "the zapp rename shipped in 1.9.1" }
+      { File = "RELEASE_NOTES.md"; Line = 19; Contains = "||>>"; Claim = "map2/map3 operators were added in 1.8.0" }
+      { File = "dotnetcore.yml"; Line = 95; Contains = "AllDocs"; Claim = "CI runs the AllDocs target" }
       { File = "build.proj"; Line = 24; Contains = "FSharpPlus.sln"; Claim = "AllDocs builds the whole solution" }
       { File = "FSharpPlus.sln"; Line = 96; Contains = "FSharpPlus.Docs"; Claim = "the docs project is in the solution, so CI compiles it" }
     ]
@@ -158,7 +158,7 @@ type AbsentName = { Name: string; Instead: string; From: string }
 type PresentName = { Name: string; Claim: string }
 
 /// A name defined in exactly one place and reachable only qualified.
-type QualifiedOnlyName = { Name: string; ExpectedFile: string; Claim: string }
+type QualifiedOnlyName = { Name: string; ExpectedFile: string; ExpectedModule: string; Claim: string }
 
 /// Absence is the one claim class a search settles more firmly than a compiler can: a compiler tells
 /// you a name failed to resolve in one context, whereas scanning every definition site tells you it
@@ -167,14 +167,16 @@ type QualifiedOnlyName = { Name: string; ExpectedFile: string; Claim: string }
 let absent : AbsentName list =
     [
       { Name = "fmap";            Instead = "map, or <!> / |>>";                                       From = "Haskell" }
+      { Name = "|!>";             Instead = "map (fun _ -> replacement)";                              From = "upstream after the 1.9.1 release" }
+      { Name = "<!|";             Instead = "map (fun _ -> replacement)";                              From = "upstream after the 1.9.1 release" }
       { Name = "pure";            Instead = "result (monad/sequential) or pur (zip)";                  From = "Haskell" }
-      { Name = "liftA";           Instead = "lift2 / lift3";                                           From = "Haskell" }
-      { Name = "liftA2";          Instead = "lift2";                                                   From = "Haskell" }
+      { Name = "liftA";           Instead = "map; lift2 / lift3 for multiple arguments";               From = "Haskell" }
+
       { Name = "forM";            Instead = "traverse, or a monad CE";                                 From = "Haskell" }
-      { Name = "sequence_";       Instead = "sequence >> ignore";                                      From = "Haskell" }
-      { Name = "traverse_";       Instead = "traverse >> ignore";                                      From = "Haskell" }
-      { Name = "asyncResult";     Instead = "monad over Async<Result<_,_>>, or ResultT";               From = "FsToolkit.ErrorHandling" }
-      { Name = "taskResult";      Instead = "monad over Task<Result<_,_>>, or ResultT";                From = "FsToolkit.ErrorHandling" }
+      { Name = "sequence_";       Instead = "sequence >> map ignore (retain the outer effect)";        From = "Haskell" }
+      { Name = "traverse_";       Instead = "traverse >> map ignore (retain the outer effect)";        From = "Haskell" }
+      { Name = "asyncResult";     Instead = "ResultT, or explicit Result handling inside Async";       From = "FsToolkit.ErrorHandling" }
+      { Name = "taskResult";      Instead = "ResultT, or explicit Result handling inside Task";        From = "FsToolkit.ErrorHandling" }
       { Name = "sequenceResult";  Instead = "generic sequence";                                        From = "FsToolkit.ErrorHandling" }
       { Name = "traverseResult";  Instead = "generic traverse";                                        From = "FsToolkit.ErrorHandling" }
       { Name = "bindResult";      Instead = "generic >>=";                                             From = "FsToolkit.ErrorHandling" }
@@ -183,6 +185,7 @@ let absent : AbsentName list =
 
 let present : PresentName list =
     [
+      { Name = "liftA2";      Claim = "obsolete compatibility alias; prefer lift2" }
       { Name = "map";         Claim = "the generic functor map" }
       { Name = "result";      Claim = "monad / sequential applicative lift" }
       { Name = "pur";         Claim = "zip applicative lift" }
@@ -211,5 +214,6 @@ let qualifiedOnly : QualifiedOnlyName list =
     [
       { Name = "mapM"
         ExpectedFile = "src/FSharpPlus/Data/Seq.fs"
+        ExpectedModule = "FSharpPlus.Data.SeqT"
         Claim = "mapM exists ONLY as SeqT.mapM - it is not a global generic function, so `mapM f xs` will not resolve. Use traverse." }
     ]

@@ -4,12 +4,12 @@
     "Line numbers drift as master moves, so citations are only meaningful against a fixed",
     "commit. CI checks citations against this pin as a hard gate, and separately warns when",
     "master has moved away from it (see .github/workflows/verify.yml).",
-    "To move the pin: bump 'sha', re-run tools/check_citations.py, fix what broke."
+    "To move the pin: update 'sha' to the release tag commit, run tools/verify.sh, and fix stale claims."
   ],
   "repo": "https://github.com/fsprojects/FSharpPlus.git",
-  "sha": "44ebc378fa403400a343784e4285b3fd2672b363",
-  "sha_date": "2026-02-13",
-  "sha_subject": "Add (|!>) operators",
+  "sha": "d1643d2ac9346c6b2e6bf52765a0648177b5ed9e",
+  "sha_date": "2026-01-11",
+  "sha_subject": "Revert string renames",
   "release": "1.9.1",
   "package_version": "1.9.1"
 }

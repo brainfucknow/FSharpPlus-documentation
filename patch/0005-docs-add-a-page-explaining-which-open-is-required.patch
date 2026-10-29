@@ -1,4 +1,4 @@
-From 6992d07a3cd1a1d89ea1bf94f05ac9e4585506e1 Mon Sep 17 00:00:00 2001
+From 10ba8c4b6811e549a8a1c7c641d9ee1967a3ad1f Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sun, 26 Jul 2026 04:36:35 +0000
 Subject: [PATCH 5/5] docs: add a page explaining which open is required
@@ -23,7 +23,7 @@ Registered in FSharpPlus.Docs so it is compiled, and linked from index.fsx so it
  create mode 100644 docsrc/content/required-opens.fsx
 
 diff --git a/docsrc/content/index.fsx b/docsrc/content/index.fsx
-index 4ac722b..3791fbe 100644
+index ce5baf7..bf38d77 100644
 --- a/docsrc/content/index.fsx
 +++ b/docsrc/content/index.fsx
 @@ -20,6 +20,8 @@ as possible.
@@ -37,14 +37,14 @@ index 4ac722b..3791fbe 100644
   * Generic and customizable [Computation Expressions](computation-expressions.html),
 diff --git a/docsrc/content/required-opens.fsx b/docsrc/content/required-opens.fsx
 new file mode 100644
-index 0000000..9ed159f
+index 0000000..c2d8231
 --- /dev/null
 +++ b/docsrc/content/required-opens.fsx
 @@ -0,0 +1,101 @@
 +(*** hide ***)
 +// This block of code is omitted in the generated HTML documentation. Use
 +// it to define helpers that you do not want to show in the documentation.
-+#r @"../../src/FSharpPlus/bin/Release/net8.0/FSharpPlus.dll"
++#r @"../../src/FSharpPlus/bin/Release/netstandard2.0/FSharpPlus.dll"
 +
 +(**
 +# Which `open` do I need?
@@ -143,7 +143,7 @@ index 0000000..9ed159f
 +compile where it lands.
 +*)
 diff --git a/src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj b/src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj
-index 790a885..84c5c3b 100644
+index 0f0a5d4..9ed4941 100644
 --- a/src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj
 +++ b/src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj
 @@ -57,6 +57,9 @@

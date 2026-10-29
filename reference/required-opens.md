@@ -23,8 +23,8 @@ occurrences in `src/FSharpPlus/*.fs` and `src/FSharpPlus/Math/*.fs`):
 
 | Module | Declared in | Reached by |
 |---|---|---|
-| `Operators` | `Operators.fs:9-10` | `open FSharpPlus` |
-| `GenericBuilders` | `Builders.fs:17-18` | `open FSharpPlus` |
+| `Operators` | `Operators.fs:8-9` | `open FSharpPlus` |
+| `GenericBuilders` | `Builders.fs:99-100` | `open FSharpPlus` |
 | `Parsing` | `Parsing.fs:5-6` | `open FSharpPlus` |
 | `Memoization` | `Memoization.fs:8-9` | `open FSharpPlus` |
 
@@ -32,7 +32,7 @@ Notably **not** auto-opened — each needs an explicit `open`:
 
 | Module | Declared in | Why it trips people up |
 |---|---|---|
-| `Lens` | `Lens.fs:9` (`namespace FSharpPlus`, plain `module`) | It is under `FSharpPlus`, so `open FSharpPlus` *looks* like it should be enough. It is not. |
+| `Lens` | `Lens.fs:10` (`namespace FSharpPlus`, plain `module`) | It is under `FSharpPlus`, so `open FSharpPlus` *looks* like it should be enough. It is not. |
 | `Math.Generic` | `Math/Generic.fs:1,12` | Separate namespace *and* non-auto-opened module. |
 | `Math.Applicative` | `Math/Applicative.fs:1,15` | Lifts `+ - * /` into applicatives. |
 | `Math.ZipApplicative` | `Math/Applicative.fs:1,68` | Same, for zip-applicatives. |
@@ -41,17 +41,17 @@ Notably **not** auto-opened — each needs an explicit `open`:
 
 | You want | `open` you need | Source |
 |---|---|---|
-| `map`, `bind`, `join`, `traverse`, `sequence`, `result`, `pur`, `zero`, `plus`, `foldMap`, `length` | `open FSharpPlus` | `Operators.fs:9-10` (`AutoOpen`) |
+| `map`, `bind`, `join`, `traverse`, `sequence`, `result`, `pur`, `zero`, `plus`, `foldMap`, `length` | `open FSharpPlus` | `Operators.fs:8-9` (`AutoOpen`) |
 | Operators `<!>` `<*>` `>>=` `>=>` `<|>` `++` `*>` `<*` `<.>` `.>` `<.` `=>>` | `open FSharpPlus` | `Operators.fs` (`AutoOpen`) |
-| CEs `monad`, `monad'`, `monad.plus`, `monad.plus'`, `applicative`, `applicative2/3`, `zapp`, `zapp2/3` | `open FSharpPlus` | `Builders.fs:17-18` (`AutoOpen`) |
+| CEs `monad`, `monad'`, `monad.plus`, `monad.plus'`, `applicative`, `applicative2/3`, `zapp`, `zapp2/3` | `open FSharpPlus` | `Builders.fs:99-100` (`AutoOpen`) |
 | `tryParse`, `parse`, `tryParseArray`, `parseArray`, `(\|Parsed\|_\|)` | `open FSharpPlus` | `Parsing.fs:5-6` (`AutoOpen`) |
 | `memoizeN` — there is **no** plain `memoize` | `open FSharpPlus` | `Memoization.fs:8-9` (`AutoOpen`), definition at `:24` |
 | Extension modules: `String.toLower`, `Option.*`, `Result.*`, `Seq.*`, `List.*`, `Map.*`, `Task.*`, `Async.*`, `Dict.*`, `ResizeArray.*`, `Obj.*`, … | `open FSharpPlus` | `Extensions/*.fs`, all `namespace FSharpPlus`, each `[<RequireQualifiedAccess>] module` (e.g. `String.fs:4-5`) |
 | Types: `Reader`, `Writer`, `State`, `Cont`, `Validation`, `NonEmptyList`, `NonEmptySeq`, `NonEmptyMap`, `NonEmptySet`, `DList`, `ZipList`, `Identity`, `Const`, `Compose`, `Coproduct`, `Kleisli`, `Free`, `ParallelArray`, `MultiMap` | `open FSharpPlus.Data` | all of `Data/*.fs` declare `namespace FSharpPlus.Data` |
 | Monoid wrappers: `Dual`, `Mult`, `First`, `Last`, `All`, `Any` | `open FSharpPlus.Data` | `Data/Monoids.fs` |
 | Transformers: `OptionT`, `ResultT`, `ChoiceT`, `ReaderT`, `WriterT`, `StateT`, `SeqT`, `ListT`, `ContT`, `ValueOptionT` | `open FSharpPlus.Data` | `Data/*.fs` |
-| `view`, `preview`, `setl`, `over`, `_1`, `_2`, `_Some`, `_Ok`, `both`, `toListOf`, `traverseOf` | `open FSharpPlus.Lens` | `Lens.fs:9` — **not** `AutoOpen` |
-| Lens operators `^.` `^?` `^..` `.->` `%->` `<&>` | `open FSharpPlus.Lens` | `Lens.fs:229,247,250,235,241,256` |
+| `view`, `preview`, `setl`, `over`, `_1`, `_2`, `_Some`, `_Ok`, `both`, `toListOf`, `traverseOf` | `open FSharpPlus.Lens` | `Lens.fs:10` — **not** `AutoOpen` |
+| Lens operators `^.` `^?` `^..` `.->` `%->` `<&>` | `open FSharpPlus.Lens` | `Lens.fs:236`, `Lens.fs:254`, `Lens.fs:257`, `Lens.fs:242`, `Lens.fs:248`, `Lens.fs:263` |
 | Generic numeric literals and ops over any numeric type | `open FSharpPlus.Math.Generic` | `Math/Generic.fs:1,12` |
 | Arithmetic lifted into applicatives (`+` on two `Option`s, etc.) | `open FSharpPlus.Math.Applicative` | `Math/Applicative.fs:1,15` |
 | Same, non-sequential | `open FSharpPlus.Math.ZipApplicative` | `Math/Applicative.fs:1,68` |

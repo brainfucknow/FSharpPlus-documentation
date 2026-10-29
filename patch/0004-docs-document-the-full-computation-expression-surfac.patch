@@ -1,4 +1,4 @@
-From cdddc0ca157c24a79e06ea0685e3b73337206f2a Mon Sep 17 00:00:00 2001
+From 26b8ea29e7821cac7cb6bb2be7add733c641ad09 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sun, 26 Jul 2026 04:36:35 +0000
 Subject: [PATCH 4/5] docs: document the full computation expression surface
@@ -86,7 +86,7 @@ index 92cb106..48c72b9 100644
  let lazyValue = monad {
      let! a = lazy (printfn "I'm lazy"; 2)
      let! b = lazy (printfn "I'm lazy too"; 10)
-@@ -62,6 +112,43 @@ m.Add i
+@@ -62,6 +112,43 @@ with e ->
          return -3 }
  
  

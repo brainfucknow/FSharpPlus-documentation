@@ -17,15 +17,15 @@ There are **four distinct monadic builder types**. There are **eight-plus spelli
 
 | Spelling | Resolves to | Lazy / strict | Additive (`Zero`/`Combine` via `<|>`) | Source |
 |---|---|---|---|---|
-| `monad` | `MonadFxBuilder` | lazy | no | `Builders.fs:257` |
-| `monad.fx` | `MonadFxBuilder` (returns `this`) | lazy | no | `Builders.fs:166` |
-| `monad'` | `MonadFxStrictBuilder` | **strict** | no | `Builders.fs:260` |
-| `monad.strict` | `MonadFxStrictBuilder` | **strict** | no | `Builders.fs:157` |
-| `monad.fx'` | `MonadFxStrictBuilder` | **strict** | no | `Builders.fs:169` |
-| `monad.fx.strict` | `MonadFxStrictBuilder` | **strict** | no | via `:166` then `:157` |
-| `monad.plus` | `MonadPlusBuilder` | lazy | **yes** | `Builders.fs:160` |
-| `monad.plus'` | `MonadPlusStrictBuilder` | **strict** | **yes** | `Builders.fs:163` |
-| `monad.plus.strict` | `MonadPlusStrictBuilder` | **strict** | **yes** | `Builders.fs:133` |
+| `monad` | `MonadFxBuilder` | lazy | no | `Builders.fs:344` |
+| `monad.fx` | `MonadFxBuilder` (returns `this`) | lazy | no | `Builders.fs:253` |
+| `monad'` | `MonadFxStrictBuilder` | **strict** | no | `Builders.fs:347` |
+| `monad.strict` | `MonadFxStrictBuilder` | **strict** | no | `Builders.fs:244` |
+| `monad.fx'` | `MonadFxStrictBuilder` | **strict** | no | `Builders.fs:256` |
+| `monad.fx.strict` | `MonadFxStrictBuilder` | **strict** | no | via `Builders.fs:253` then `Builders.fs:244` |
+| `monad.plus` | `MonadPlusBuilder` | lazy | **yes** | `Builders.fs:247` |
+| `monad.plus'` | `MonadPlusStrictBuilder` | **strict** | **yes** | `Builders.fs:250` |
+| `monad.plus.strict` | `MonadPlusStrictBuilder` | **strict** | **yes** | `Builders.fs:220` |
 
 So the four builders, with their canonical spelling first:
 
@@ -37,11 +37,11 @@ So the four builders, with their canonical spelling first:
 | `MonadPlusStrictBuilder` | `monad.plus'` | `monad.plus.strict` |
 
 **Correction to the plan:** it lists four spellings. `monad.plus.strict` is a fifth distinct path,
-because `.strict` is defined on `MonadPlusBuilder` too (`Builders.fs:133`), not only on
+because `.strict` is defined on `MonadPlusBuilder` too (`Builders.fs:220`), not only on
 `MonadFxBuilder`.
 
 **One thing that does *not* exist:** the strict builders carry no flavour members of their own.
-`MonadFxStrictBuilder` (`:114`) and `MonadPlusStrictBuilder` (`:99`) define no `.plus`, `.fx`, or
+`MonadFxStrictBuilder` (`Builders.fs:201`) and `MonadPlusStrictBuilder` (`Builders.fs:186`) define no `.plus`, `.fx`, or
 `.strict`. So `monad'.plus` is **not** valid — to get a strict additive CE you must write `monad.plus'`
 or `monad.plus.strict`, starting from `monad`.
 
@@ -49,15 +49,15 @@ or `monad.plus.strict`, starting from `monad`.
 
 | Spelling | Builder | Layers | Sequential? | Status | Source |
 |---|---|---|---|---|---|
-| `applicative` | `ApplicativeBuilder` | 1 | sequential | current | `Builders.fs:263` |
-| `applicative2` | `ApplicativeBuilder2` | 2 | sequential | current | `Builders.fs:266` |
-| `applicative3` | `ApplicativeBuilder3` | 3 | sequential | current | `Builders.fs:269` |
-| `zapp` | `ZipApplicativeBuilder` | 1 | **non-sequential** | current | `Builders.fs:281` |
-| `zapp2` | `ZipApplicativeBuilder2` | 2 | **non-sequential** | current | `Builders.fs:284` |
-| `zapp3` | `ZipApplicativeBuilder3` | 3 | **non-sequential** | current | `Builders.fs:287` |
-| `applicative'` | `ZipApplicativeBuilder` | 1 | non-sequential | ⚠️ **obsolete → `zapp`** | `Builders.fs:271-272` |
-| `applicative2'` | `ZipApplicativeBuilder2` | 2 | non-sequential | ⚠️ **obsolete → `zapp2`** | `Builders.fs:274-275` |
-| `applicative3'` | `ZipApplicativeBuilder3` | 3 | non-sequential | ⚠️ **obsolete → `zapp3`** | `Builders.fs:277-278` |
+| `applicative` | `ApplicativeBuilder` | 1 | sequential | current | `Builders.fs:350` |
+| `applicative2` | `ApplicativeBuilder2` | 2 | sequential | current | `Builders.fs:353` |
+| `applicative3` | `ApplicativeBuilder3` | 3 | sequential | current | `Builders.fs:356` |
+| `zapp` | `ZipApplicativeBuilder` | 1 | **non-sequential** | current | `Builders.fs:368` |
+| `zapp2` | `ZipApplicativeBuilder2` | 2 | **non-sequential** | current | `Builders.fs:371` |
+| `zapp3` | `ZipApplicativeBuilder3` | 3 | **non-sequential** | current | `Builders.fs:374` |
+| `applicative'` | `ZipApplicativeBuilder` | 1 | non-sequential | ⚠️ **obsolete → `zapp`** | `Builders.fs:358-359` |
+| `applicative2'` | `ZipApplicativeBuilder2` | 2 | non-sequential | ⚠️ **obsolete → `zapp2`** | `Builders.fs:361-362` |
+| `applicative3'` | `ZipApplicativeBuilder3` | 3 | non-sequential | ⚠️ **obsolete → `zapp3`** | `Builders.fs:364-365` |
 
 The obsolete names are `Obsolete(..., false)` — a **warning, not an error**. Both spellings compile,
 which is exactly why stale names persist. Since the upstream Docs project sets no
@@ -87,7 +87,7 @@ open FSharpPlus
 let sequential : int list = (+) <!> [1; 2; 3] <*> [10; 20; 30]
 // val sequential : int list = [11; 21; 31; 12; 22; 32; 13; 23; 33]
 
-// <.> on list zips element-wise (List.map2Shortest, ZipApplicative.fs:81)
+// <.> on list zips element-wise (List.map2Shortest, ZipApplicative.fs:84)
 let zipped : int list = (+) <!> [1; 2; 3] <.> [10; 20; 30]
 // val zipped : int list = [11; 22; 33]
 ```
@@ -97,7 +97,7 @@ Nine results versus three, from a one-character difference, with no compile erro
 ## Lazy vs strict: why it cannot be inferred from the call site
 
 `monad` is lazy; `monad'` is strict. Which one a given type *requires* depends on whether the type has
-a `Delay`/`TryWith` implementation that behaves lazily. `MonadPlusBuilder.While` (`Builders.fs:141-145`)
+a `Delay`/`TryWith` implementation that behaves lazily. `MonadPlusBuilder.While` (`Builders.fs:228-232`)
 literally probes this at compile time and emits a warning when the type is not lazy:
 
 ```fsharp

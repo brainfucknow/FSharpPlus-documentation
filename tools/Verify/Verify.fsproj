@@ -3,8 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
-    <!-- The verification tooling runs in containers that may only ship a newer major runtime;
-         see the "Running the checks locally" section of README.md. -->
+    <!-- Runtime roll-forward supports already-built artifacts; verification uses the SDK pin. -->
     <RollForward>LatestMajor</RollForward>
     <AssemblyName>verify</AssemblyName>
     <RootNamespace>Verify</RootNamespace>

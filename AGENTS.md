@@ -1,7 +1,8 @@
 # Working in F#+ codebases
 
-Rules for coding agents. Everything here is either derived from `fsprojects/FSharpPlus` source at a
-pinned commit (1.9.1) and re-checked in CI, or demonstrated by a snippet that CI compiles and executes.
+Rules for coding agents targeting FSharpPlus 1.9.1. Source claims refer to the release commit in
+[`upstream.json`](upstream.json). Tagged reference examples are compiled and executed in CI;
+annotation guidance is a heuristic with compiler-checked cases in the skill references.
 Fuller tables in [`reference/`](reference/); paste-able summary in [`CHEATSHEET.md`](CHEATSHEET.md);
 machine-readable corpus in [`corpus/verified-snippets.jsonl`](corpus/verified-snippets.jsonl).
 
@@ -24,7 +25,7 @@ gets copied.
 
 ## 2. Do not invent these — they do not exist
 
-`fmap` · `pure` · `liftA` · `liftA2` · `forM` · `sequence_` · `traverse_` · `memoize` ·
+`fmap` · `pure` · `liftA` · `forM` · `sequence_` · `traverse_` · `memoize` ·
 `asyncResult` · `taskResult` · `sequenceResult` · `traverseResult` · `bindResult`
 
 Use instead: `map` · `result`/`pur` · `lift2`/`lift3` · `traverse` · `sequence` · `memoizeN` · `>>=`.
@@ -32,6 +33,8 @@ Use instead: `map` · `result`/`pur` · `lift2`/`lift3` · `traverse` · `sequen
 - `mapM` exists **only** as `SeqT.mapM`, not as a global function. Use `traverse`.
 - `<>` is **not** the monoid operator in F#+. `++` is.
 - `memoizeN` is the only memoize function; there is no plain `memoize`.
+- `liftA2` exists as an obsolete alias in 1.9.1; use `lift2`. The replacement operators `|!>` and
+  `<!|` are absent from this release; use `map (fun _ -> value) source`.
 - `result` (`Return`) and `pur` (`Pure`) are **different functions** — `result` for monads and
   sequential applicatives, `pur` for zip applicatives.
 
@@ -89,8 +92,10 @@ let (result: Async<_>) = monad.fx { ... }
 let (items: list<_>)   = monad.plus' { ... }
 ```
 
-This is a heuristic generalised from upstream examples, not a verified rule — a precise
-"annotation required here" table needs the compiler as an oracle and does not exist yet.
+This is a heuristic generalised from upstream examples, not a universal rule. Consult the skill's
+[SRTP error guide](fsharpplus/references/srtp-errors.md) for compiler-checked failure cases. In
+particular, do not annotate `let!` patterns inside transformer `monad` expressions; annotate the
+containing function's return type instead.
 
 ## 7. Two hazards to know
 
@@ -103,7 +108,8 @@ This is a heuristic generalised from upstream examples, not a verified rule — 
 
 ## 8. If you add an example to this repo
 
-Tag it so CI proves it:
+For the source-backed reference corpus in `reference/`, tag executable examples so `tools/Verify`
+checks them:
 
 ````markdown
 ```fsharp verify name=my_example
@@ -118,3 +124,16 @@ let doubled : int list = map ((*) 2) [1; 2; 3]
 whose snippet does not annotate `let name : Type` — so the compiler checks the type — and the generated
 program asserts the value at runtime, in two independent targets (project compilation and `dotnet fsi`).
 Run `./tools/verify.sh` locally; it needs a .NET SDK.
+
+The task-oriented skill under `fsharpplus/` uses a separate convention: plain `fsharp` fences,
+`// expect:` output assertions, and explicitly marked intentionally failing examples with documented
+diagnostic codes. Keep that convention when editing skill references and run
+`python3 scripts/verify_fsharpplus_examples.py`. Use .NET SDK 8.0.425 for its diagnostic expectations.
+Do not convert skill examples to tagged reference blocks without updating and exercising their
+verifier. Run both collections when shared API guidance changes, and run
+`python3 -m unittest evals.test_run_ab` for evaluation-runner changes. Model-generated A/B evaluations
+are optional and require an authenticated agent CLI.
+
+## SwarmForge
+
+When SwarmForge is installed, follow swarmforge/README.md and swarmforge/roles/orchestrator.md when asked to swarm a feature; delegate subagent roles by name and keep all task bookkeeping in swarmforge/bin/sf.

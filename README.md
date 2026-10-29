@@ -3,7 +3,8 @@
 Work toward making [F#+](https://github.com/fsprojects/FSharpPlus) documentation sufficient for
 reliable LLM output — treating the F# compiler as the oracle that decides what gets published.
 
-Checked against `fsprojects/FSharpPlus` at `master`, **1.9.1 (January 2026)**.
+Targets **FSharpPlus 1.9.1**. Source citations refer to the release commit recorded in
+[`upstream.json`](upstream.json), rather than a moving `master` branch.
 
 ## Contents
 
@@ -19,6 +20,8 @@ Checked against `fsprojects/FSharpPlus` at `master`, **1.9.1 (January 2026)**.
 | [`AGENTS.md`](AGENTS.md) | Rules for coding agents working in F#+ codebases |
 | [`corpus/verified-snippets.jsonl`](corpus/verified-snippets.jsonl) | The verified corpus as JSONL — opens, code, expected type and value — for RAG, few-shot or fine-tuning |
 | [`patch/`](patch/) | A five-patch series applying these findings to `fsprojects/FSharpPlus` itself, built and validated against the pinned base |
+| [`fsharpplus/SKILL.md`](fsharpplus/SKILL.md) | Task-oriented skill, practical recipes, and compiler-diagnostic guidance |
+| [`evals/README.md`](evals/README.md) | Optional model A/B evaluations and the evaluation-runner test commands |
 
 ## Three findings that change the plan
 
@@ -40,11 +43,9 @@ the compiler's reach. Adding three `<Compile>` lines is the cheapest correctness
 
 The `gap` command of [`tools/Verify`](tools/Verify) computes the Step 3 work-list rather than curating it:
 
-```
-public named functions in the AutoOpen Operators module: 192
-with zero mentions anywhere in upstream docsrc/content:   53  (27%)
-of those, now carrying a verified example in this repo:    21
-```
+Run `gap --upstream .upstream --covered-by reference/generic-functions.md` after building the tool
+to report the function count, the upstream gap, and the examples supplied by this repository for the
+current pin. CI checks the gap against its recorded baseline.
 
 **Zero mentions** means no example, no prose, not one passing reference. The real gap is larger — a
 single mention is not an example — so this understates it. And the missing functions are not obscure:
@@ -56,10 +57,10 @@ the number cannot be inflated by writing about a function instead of demonstrati
 
 ## Verification
 
-Every statement here is meant to be checkable by a machine, and CI checks it. Four jobs, in
-[`.github/workflows/verify.yml`](.github/workflows/verify.yml), all driven by
-[`tools/Verify`](tools/Verify) — an F# project, so the tooling is in the same language as the library
-it documents and its claim data is compile-checked rather than parsed from JSON:
+The source reference uses [`tools/Verify`](tools/Verify), an F# project, for citation checks and
+tagged examples. [`.github/workflows/verify.yml`](.github/workflows/verify.yml) runs these checks
+alongside the separate skill-example verifier and Python evaluation-runner tests described below.
+The source-reference jobs are:
 
 | Job | What it proves | Blocking |
 |---|---|---|
@@ -68,7 +69,8 @@ it documents and its claim data is compile-checked rather than parsed from JSON:
 | `fsi` | The same snippets executed under **`dotnet fsi`** — a second, independent target, because PR #372 showed FSI and project compilation disagree on SRTP-heavy code. | yes |
 | `drift` | The same claim checks against upstream `master`, weekly, advisory — so a stale pin surfaces as news rather than as a wrong table. | no |
 
-Run it all locally with [`tools/verify.sh`](tools/verify.sh), or drive the tool directly:
+Run the full local pipeline with [`tools/verify.sh`](tools/verify.sh), including skill examples and
+evaluation-runner tests, or drive the source-reference tool directly:
 
 ```sh
 dotnet build tools/Verify/Verify.fsproj -c Release
@@ -80,41 +82,32 @@ $V snippets --out build/verify --fsi      # generate both verification targets
 $V corpus   --check                       # is the committed JSONL current?
 ```
 
-A .NET SDK is required for every check, including the claim checks — that is the cost of moving the
-tooling off Python.
+A .NET SDK is required for all `tools/Verify` commands, including claim checks. The Python
+evaluation-runner unit tests do not require .NET; compiling skill examples does.
 
 ### Running the checks locally in a cloud container
 
-The usual .NET installers do not work in a proxied remote session: `dot.net`,
-`builds.dotnet.microsoft.com`, `aka.ms` and `dotnetcli.azureedge.net` all return **403 on CONNECT**, so
-`curl` and `dotnet-install.sh` both fail. Don't fight the proxy — the Ubuntu 24.04 archive carries the
-SDK and is reachable:
+Use .NET SDK **8.0.425**, the version recorded for the skill's compiler-diagnostic expectations, and
+Python 3. Install .NET through Microsoft's official installer or the supported package repository
+for your operating system; package availability differs between Debian and Ubuntu. Check
+`dotnet --version` before validation. A newer major SDK can change the diagnostics expected by the
+intentionally failing examples even when normal snippets still compile.
 
-```sh
-apt-get update                     # refresh indexes first, or the .deb URLs 404
-apt-get install -y dotnet-sdk-8.0  # matches upstream's global.json pin and CI
-```
+Preserve the environment's configured proxy, CA trust, TLS verification, and artifact checksums.
+If an SDK or NuGet request fails, diagnose that destination's response and use the environment's
+supported network settings. A denial in one cloud session does not establish that the same host is
+blocked in another. The prepared cloud environment provides the SDK at
+`/workspace/.tools/dotnet8/dotnet`; add that directory to PATH or pass it with the skill verifier's
+`--dotnet` option.
 
-Three consequences worth knowing:
-
-- **Prefer `dotnet-sdk-8.0`.** It matches upstream's `global.json` (`8.0.0`, `rollForward:
-  latestFeature`) and the version CI uses, so the compiler enforcing the `FS0044`/`FS0064` gates is the
-  same one everywhere. `dotnet-sdk-10.0` also works for *this* repo, but it cannot build upstream's own
-  projects — `global.json` rejects it with "Install the [8.0.0] .NET SDK".
-- Generated projects target **net8.0** but set `RollForward=LatestMajor`, so they run on a newer-major
-  runtime. Without that, the build succeeds and `dotnet run` dies with
-  `Framework 'Microsoft.NETCore.App', version '8.0.0' not found`.
-- `nuget.org` *is* reachable, so `PackageReference` restore and `#r "nuget: FSharpPlus, 1.9.1"` both
-  work — only the SDK download hosts are blocked.
-
-Verified end-to-end in such a container: `./tools/verify.sh` exits 0 with 43/43 assertions in both
-targets. Building the upstream docs project additionally needs
-`git submodule update --init` for `external/FSharp.TypeProviders.SDK`.
+Generated source-reference projects target **net8.0**. Building the upstream docs project additionally
+needs `git submodule update --init` for `external/FSharp.TypeProviders.SDK`. Each verification runner
+prints the assertion or example totals for the current checkout; use that run's output as evidence.
 
 ### Why the citations are pinned
 
 Line numbers are only meaningful against a fixed commit, so [`upstream.json`](upstream.json) pins
-`44ebc378` (2026-02-13, release 1.9.1). The `claims` job is a hard gate at that pin; `drift` reports
+the FSharpPlus 1.9.1 release commit. The `claims` job is a hard gate at that pin; `drift` reports
 separately when `master` moves. Absence failures are the exception worth acting on immediately — if
 upstream *adds* something we documented as non-existent, the prose is wrong regardless of the pin.
 
@@ -141,8 +134,8 @@ A gate that cannot go red is decoration, so each one was deliberately broken and
 | Citation drift | a shifted + renamed copy of upstream | every affected assertion reported by broken-claim name, exit 1 |
 | Absence claim | — | caught a real error unprompted: this repo claimed `memoize` exists when upstream defines only `memoizeN` |
 
-The two snippet faults were injected on this branch and reverted; the red runs remain in the Actions
-history as evidence. The clean run reports `19 value assertion(s): 19 passed, 0 failed`.
+The table records historical negative checks; its totals describe those fault-injection runs, not
+the current corpus size. Rerun the checks after changing the verifier or examples.
 
 ### Honest limits
 
@@ -160,11 +153,18 @@ history as evidence. The clean run reports `19 value assertion(s): 19 passed, 0 
 
 ## Skill documentation and evaluations
 
-FSharpPlus documentation
+The task-oriented [FSharpPlus skill](fsharpplus/SKILL.md) and its references serve practical coding
+tasks. The root [`reference/`](reference/) directory records source-backed API tables. Both target
+FSharpPlus 1.9.1, but their executable examples use separate conventions and runners.
 
 ### Skill verification
 
 Run `python3 scripts/verify_fsharpplus_examples.py` to compile every F# example in the skill. The verifier requires each normal example to compile, each intentionally failing SRTP example to fail with its documented F# diagnostic code, and every `// expect:` line inside an example to appear in that example's output. Pass `--dotnet /path/to/dotnet` when `dotnet` is not on `PATH`.
+
+Keep plain `fsharp` fences and `// expect:` output claims in `fsharpplus/`. The root source-reference
+examples use `fsharp verify name=...` fences with `// val` claims and are checked by `tools/Verify`.
+One runner's passing result does not cover the other collection. Run both when changing shared API
+guidance; run `python3 -m unittest evals.test_run_ab` when changing the evaluation runner.
 
 ### Model evaluation
 

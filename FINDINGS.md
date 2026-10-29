@@ -1,18 +1,15 @@
 # Findings: re-verifying the plan against upstream source
 
-Everything below was checked against a fresh clone of `fsprojects/FSharpPlus` at `master`
-(`RELEASE_NOTES.md` head = **1.9.1, January 11 2026**). Claims are cited as `file:line` so they can
-be re-checked. Where the plan and the source disagree, the source wins and I say so.
+These findings began as a source review of the original documentation plan. Source claims and
+`file:line` citations now refer to the FSharpPlus 1.9.1 release commit in
+[`upstream.json`](upstream.json), so they can be re-checked rather than following a moving `master`.
 
-Two environment facts shape what could and could not be done:
-
-- **This repo (`FSharpPlus-documentation`) is empty** — `LICENSE`, `README.md`, `.gitignore` only.
-  The plan's "verification notes" describe paths (`docsrc/content/`, `src/FSharpPlus.Samples`) that
-  live in *upstream* `fsprojects/FSharpPlus`, not here.
-- **No F# compiler is available and cannot be installed.** `builds.dotnet.microsoft.com` is denied by
-  the environment's network policy (`403` to `CONNECT`, confirmed via the proxy status endpoint). This
-  is a policy denial, not a transient failure. Every compiler-gated step is therefore blocked here —
-  see [What is blocked](#what-is-blocked).
+The initial review started from a nearly empty documentation repository and a cloud session where
+SDK downloads were denied. Those were historical constraints, not current setup requirements. This
+repository now includes source-reference checks and executable examples in `tools/Verify`, plus the
+task-oriented skill in `fsharpplus/` and its Python verifier. See [verification instructions](README.md#verification)
+and [remaining work](#remaining-work) for their current boundaries. Paths such as `docsrc/content/`
+and `src/FSharpPlus.Docs` below belong to upstream `fsprojects/FSharpPlus`, not this repository.
 
 ---
 
@@ -46,7 +43,7 @@ It uses a `ProjectReference`, not a `PackageReference` — exactly the constrain
 
 And it is enforced, not aspirational:
 
-- `.github/workflows/dotnetcore.yml:97-98` → `dotnet msbuild -target:AllDocs build.proj`
+- `.github/workflows/dotnetcore.yml:94-95` → `dotnet msbuild -target:AllDocs build.proj`
 - `build.proj:22-26` → `AllDocs` runs `dotnet build FSharpPlus.sln -c Release`
 - `FSharpPlus.sln:96` → `FSharpPlus.Docs` is a member of the solution
 
@@ -128,7 +125,7 @@ plan wants to rely on:
 
 ## The `zapp` discrepancy: resolved, and narrower than described
 
-The rename is real and is in `master`. `src/FSharpPlus/Builders.fs:271-287`:
+The rename is real and is in `master`. `src/FSharpPlus/Builders.fs:358-374`:
 
 ```fsharp
 [<ObsoleteAttribute("This value is obsolete. Use zapp instead.", false)>]
@@ -170,10 +167,10 @@ contains no strictness probe at all. It is a good idea, but it has to be authore
 ## The CE surface is larger than the plan's corrected list
 
 The plan lists four monad spellings. The source has more, because `.strict` appears on *both* builders.
-From `src/FSharpPlus/Builders.fs:130-168`:
+From `src/FSharpPlus/Builders.fs:217-255`:
 
 `MonadFxBuilder` exposes `.strict`, `.plus`, `.plus'`, `.fx` (returns `this`), `.fx'`.
-`MonadPlusBuilder` **also** exposes `.strict` (`:133`).
+`MonadPlusBuilder` **also** exposes `.strict` (`Builders.fs:220`).
 
 That last one is what the plan missed: `monad.plus.strict` is a valid spelling, and it denotes the same
 builder as `monad.plus'`. Full alias table in
@@ -192,10 +189,10 @@ builder as `monad.plus'`. Full alias table in
 | Spike 0 mechanism unverified; `#r` may be rejected | ❌ | Already solved upstream; `#r` is tolerated in compiled `.fsx`; no guard used |
 | Multiple non-obvious `open`s needed | ✅ | Confirmed; `lens.fsx:197-199` documents this inline. Table derived in [`reference/required-opens.md`](reference/required-opens.md) |
 | FSI and project compilation can disagree | ✅ (unchanged) | PR #372 evidence stands; keep `dotnet fsi` as a second job |
-| `zapp` rename happened | ✅ | `Builders.fs:270-287`; old names are `Obsolete` warnings, so both still compile |
+| `zapp` rename happened | ✅ | `Builders.fs:357-374`; old names are `Obsolete` warnings, so both still compile |
 | Discrepancy is on `computation-expressions` | ❌ | That page has no applicative CE content at all. Sole obsolete use: `abstraction-zipapplicative.fsx:154` |
 | Docs "already suggest" a strictness probe one-liner | ❌ | `I'm strict` appears nowhere upstream; must be authored |
-| Four spellings for the monad builder | ⚠️ undercount | `monad.plus.strict` also exists (`Builders.fs:132`) |
+| Four spellings for the monad builder | ⚠️ undercount | `monad.plus.strict` also exists (`Builders.fs:219`) |
 
 ---
 
@@ -220,19 +217,22 @@ that stops the corpus from decaying, and item 3 is what makes items 1 and 2 stay
 
 ---
 
-## What is blocked
+## Remaining work
 
-Compiler-gated and **not** attempted here, because no F# toolchain can be installed in this
-environment (policy denial, documented above):
+Compiler installation no longer blocks verification. [`tools/Verify`](tools/Verify) checks the pinned
+source claims and compiles and executes tagged reference examples in both project and FSI targets.
+The [skill verifier](scripts/verify_fsharpplus_examples.py) separately checks plain F# fences, expected
+printed output, and documented diagnostics for intentionally failing examples under `fsharpplus/`.
 
-- **Step 0** — moot; already solved upstream.
-- **Step 1** (failure taxonomy) — requires compiling model output. The error-class table must be
-  *measured*, and the plan is right that it should not be hand-asserted, so I have not invented one.
-- **Step 3** (coverage loop) — requires the compiler as filter.
-- **Step 5** (pass@1 compile-rate baseline) — requires the compiler.
+- **Step 0** — the upstream compilation harness already exists.
+- **Step 1** (failure taxonomy) — the skill now contains compiler-checked SRTP error cases, but a
+  measured frequency distribution over model failures still requires a defined dataset and runs.
+- **Step 3** (coverage loop) — the reference verifier measures source coverage and filters authored
+  snippets; a complete iterative generation-and-selection loop remains future work.
+- **Step 5** (pass@1 compile-rate baseline) — the optional [A/B runner](evals/README.md) provides model
+  comparisons. Results require actual authenticated model runs and must not be inferred from passing
+  example checks.
 
-What was produced instead is the subset that can be grounded in source rather than in a compiler: the
-three reference tables in [`reference/`](reference/), extracted from `Operators.fs`, `Builders.fs`,
-`Lens.fs` and the module structure. See the verification-status note in each file — they are
-**source-derived, not compile-verified**, and the distinction is deliberate given the plan's own
-insistence on verification.
+The tables in [`reference/`](reference/) remain **source-derived**. Only their tagged executable
+examples are compiler-verified; namespace declarations, alias graphs, and source-absence claims are
+checked against source text. Passing those checks does not measure model performance.

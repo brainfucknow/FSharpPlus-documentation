@@ -49,12 +49,17 @@ let readPin () =
 // Markdown
 // ---------------------------------------------------------------------------------------------
 
-/// Every markdown file in the repo, excluding generated and VCS directories.
+/// Maintained reference documents only. Recursive repository traversal would also collect copied
+/// upstream checkouts, task worktrees, and generated agent solutions, changing claims and corpus
+/// contents according to unrelated local state. The skill has its own independent verifier.
 let markdownFiles () =
-    Directory.EnumerateFiles (repoRoot, "*.md", SearchOption.AllDirectories)
-    |> Seq.filter (fun p ->
-        let parts = (relative p).Split '/'
-        not (Array.contains ".git" parts || Array.contains "build" parts))
+    seq {
+        yield! Directory.EnumerateFiles (repoRoot, "*.md", SearchOption.TopDirectoryOnly)
+        for directory in [ "reference"; "patch" ] do
+            let full = Path.Combine (repoRoot, directory)
+            if Directory.Exists full then
+                yield! Directory.EnumerateFiles (full, "*.md", SearchOption.AllDirectories)
+    }
     |> Seq.sort
     |> List.ofSeq
 

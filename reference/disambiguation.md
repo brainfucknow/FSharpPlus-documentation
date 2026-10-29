@@ -18,19 +18,22 @@ data, it came from Haskell, FSharpx, FsToolkit.ErrorHandling, or Aether.
 
 | Name you might reach for | Where it comes from | Use instead | F#+ source |
 |---|---|---|---|
-| `fmap` | Haskell | `map`, or `<!>` / `\|>>` | `Operators.fs:141` |
-| `pure` | Haskell | **`result`** (monad/applicative) or **`pur`** (zip applicative) — see below | `:219`, `:263` |
-| `liftA`, `liftA2` | Haskell | `lift2`, `lift3` | `Operators.fs:231` |
+| `fmap` | Haskell | `map`, or `<!>` / `\|>>` | `Operators.fs:142` |
+| `pure` | Haskell | **`result`** (monad/applicative) or **`pur`** (zip applicative) — see below | `Operators.fs:199`, `Operators.fs:252` |
+| `liftA` | Haskell | `map`; for multiple arguments use `lift2` / `lift3` | `Operators.fs:211` |
 | `forM` | Haskell | `traverse` with flipped args, or `for` in a `monad` CE | — |
-| `sequence_`, `traverse_` | Haskell | `sequence` / `traverse` then `ignore` | — |
-| `asyncResult`, `taskResult` CEs | FsToolkit.ErrorHandling | `monad` over `Async<Result<_,_>>`, or `ResultT` from `FSharpPlus.Data` | `Data/Error.fs` |
+| `sequence_`, `traverse_` | Haskell | `sequence` / `traverse` then `map ignore`, preserving the outer effect | — |
+| `asyncResult`, `taskResult` CEs | FsToolkit.ErrorHandling | `ResultT` from `FSharpPlus.Data`, or explicit `Result` handling inside the underlying effect | `Data/Error.fs` |
 | `sequenceResult`, `traverseResult`, `bindResult` | FsToolkit.ErrorHandling | generic `sequence`, `traverse`, `>>=` | `Operators.fs` |
 | `Result.sequence` / FsToolkit's `Result` CE helpers | FsToolkit | the generic functions work on `Result` directly | — |
 | `memoize` | plausible guess from the module name | **`memoizeN`** — the only memoize function F#+ defines | `Memoization.fs:24` |
 
-**`mapM` is a special case.** It exists, but **only** as `SeqT.mapM` (`Data/Seq.fs:586`) — a qualified
+**`mapM` is a special case.** It exists, but **only** as `SeqT.mapM` (`Data/Seq.fs:607`) — a qualified
 member on `SeqT`, not a global generic function. Writing `mapM f xs` at the top level will not resolve.
 The generic function you want is `traverse`.
+
+`liftA2` also exists in the 1.9.1 release, but it is an obsolete alias for `lift2`, not a missing API.
+Use `lift2` in new examples; the compiler reports FS0044 for the old name.
 
 ## `result` vs `pur` — a distinction that is easy to miss
 
@@ -41,14 +44,14 @@ These are **two different functions** backed by two different SRTP invokables:
 | `result` | `let inline result (x: 'T) : '``Functor<'T>`` = Return.Invoke x` | `Return` | Monads and **sequential** applicatives |
 | `pur` | `let inline pur (x: 'T) : '``ZipFunctor<'T>`` = Pure.Invoke x` | `Pure` | **Zip** applicatives |
 
-Source: `Operators.fs:219` and `Operators.fs:263`.
+Source: `Operators.fs:199` and `Operators.fs:252`.
 
 They are not interchangeable, and `pure` — the name a Haskell-trained model will produce — is neither
 of them and does not exist.
 
 The CE builders make the split visible: the **zip** applicative builders lift with `pur`
-(`Builders.fs:229`, `:239`, `:249`) while the **sequential** ones lift with `result`
-(`Builders.fs:208`, `:218`). That is the clearest available signal for which function a given
+(`Builders.fs:316`, `Builders.fs:326`, `Builders.fs:336`) while the **sequential** ones lift with `result`
+(`Builders.fs:295`, `Builders.fs:305`). That is the clearest available signal for which function a given
 applicative context wants.
 
 `result` lifting into two different monads, compiled and executed in CI:
@@ -64,7 +67,7 @@ let intoResult : Result<int,string> = result 42
 ```
 
 Note `pur` is deliberately not given a value assertion here: for `list` its instance is
-`fun x -> List.cycle [x]` (`Control/ZipApplicative.fs:44`), i.e. conceptually infinite, so it is not
+`fun x -> List.cycle [x]` (`Control/ZipApplicative.fs:46`), i.e. conceptually infinite, so it is not
 demonstrable as a finite `// val` claim on that type.
 
 `traverse` is what you want where Haskell would use `mapM`:
@@ -79,6 +82,70 @@ let oneNone : int list option = traverse (fun x -> if x > 0 then Some x else Non
 // val oneNone : int list option = None
 ```
 
+### Discard values while retaining effects
+
+`sequence ... |> ignore` discards the computation itself. For a deferred effect such as `Async`,
+that means its effects never run. Use `map ignore` to keep the outer computation and replace only
+its result with `unit`, then execute it at the normal boundary:
+
+```fsharp verify name=discard_values_keep_effects
+open FSharpPlus
+
+let observeEffects () =
+    let mutable executions = 0
+    let operation value = async {
+        executions <- executions + 1
+        return value
+    }
+    let sequenceValues : Async<int list> = sequence [operation 1; operation 2]
+    let traverseValues : Async<int list> = traverse operation [3; 4]
+    let sequenced : Async<unit> = sequenceValues |> map ignore
+    let traversed : Async<unit> = traverseValues |> map ignore
+
+    let beforeExecution = executions
+    Async.RunSynchronously sequenced
+    let afterSequence = executions
+    Async.RunSynchronously traversed
+    beforeExecution, afterSequence, executions
+
+let executionCounts : int * int * int = observeEffects ()
+// val executionCounts : int * int * int = (0, 2, 4)
+```
+
+### Compose asynchronous results explicitly
+
+Plain `monad` over `Async<Result<_,_>>` binds the `Async` layer: the bound value is still a
+`Result`, and an `Error` does not automatically skip later statements. `ResultT` composes the
+layers so binding an `Error` short-circuits the remaining body:
+
+```fsharp verify name=async_result_composition
+open FSharpPlus
+open FSharpPlus.Data
+
+let compareBindings () =
+    let mutable plainContinues = false
+    let mutable transformedContinues = false
+    let failure : Async<Result<int,string>> = async { return Error "stop" }
+
+    let plain : Async<Result<int,string>> = monad {
+        let! outcome = failure
+        plainContinues <- true
+        return outcome
+    }
+    let composed : ResultT<Async<Result<int,string>>> = monad {
+        let! value = ResultT failure
+        transformedContinues <- true
+        return value + 1
+    }
+
+    let plainOutcome = Async.RunSynchronously plain
+    let composedOutcome = composed |> ResultT.run |> Async.RunSynchronously
+    plainOutcome, composedOutcome, plainContinues, transformedContinues
+
+let observations : Result<int,string> * Result<int,string> * bool * bool = compareBindings ()
+// val observations : Result<int,string> * Result<int,string> * bool * bool = (Error "stop", Error "stop", true, false)
+```
+
 ## Mapping from other libraries
 
 ### From Haskell
@@ -90,12 +157,12 @@ let oneNone : int list option = traverse (fun x -> if x > 0 then Some x else Non
 | `<*>` | `<*>` | same spelling, sequential |
 | `>>=` | `>>=` | same |
 | `>=>` | `>=>` | same |
-| `mappend` / `<>` | `plus` / `++` | `<>` is **not** the F#+ monoid operator; `++` is (`Operators.fs:389`) |
+| `mappend` / `<>` | `plus` / `++` | `<>` is **not** the F#+ monoid operator; `++` is (`Operators.fs:379`) |
 | `mempty` | `zero` | |
 | `traverse` / `mapM` | `traverse` | `mapM` is not a global function in F#+ |
 | `sequenceA` / `sequence` | `sequence` | |
 | `<|>` | `<|>` | same |
-| `extend` / `<<=` | `=>>` | note the direction differs from Haskell's `<<=` (`Operators.fs:1023`) |
+| `extend` / `<<=` | `=>>` | note the direction differs from Haskell's `<<=` (`Operators.fs:1002`) |
 
 ### From Aether (lenses)
 
@@ -118,11 +185,12 @@ translating name-for-name.
 
 | Old name | Current name | Since | Status |
 |---|---|---|---|
+| `liftA2` | `lift2` | present in 1.9.1 | Obsolete warning, still compiles |
 | `applicative'` | `zapp` | 1.9.1 | Obsolete **warning**, still compiles |
 | `applicative2'` | `zapp2` | 1.9.1 | Obsolete warning, still compiles |
 | `applicative3'` | `zapp3` | 1.9.1 | Obsolete warning, still compiles |
 
-Source: `Builders.fs:270-287`, `RELEASE_NOTES.md:10`.
+Source: `Builders.fs:357-374`, `RELEASE_NOTES.md:11`.
 
 Because these are `Obsolete(..., false)` — warnings, not errors — **both spellings compile**, so nothing
 in a normal build stops the old name from spreading. The upstream docs still contain one
@@ -130,8 +198,8 @@ in a normal build stops the old name from spreading. The upstream docs still con
 
 Also new enough to be missing from most training data:
 
-- `.>` and `<.` zip-applicative operators — added 1.9.1 (`RELEASE_NOTES.md:8`)
-- `||>>` / `|||>>` / `<<||` / `<<|||` map2/map3 operators — added 1.8.0 (`RELEASE_NOTES.md:18`)
+- `.>` and `<.` zip-applicative operators — added 1.9.1 (`RELEASE_NOTES.md:9`)
+- `||>>` / `|||>>` / `<<||` / `<<|||` map2/map3 operators — added 1.8.0 (`RELEASE_NOTES.md:19`)
 - `Obj` module, `Result.bindTask` / `bindInto` — added 1.9.1
 
 ## A caution about this page

@@ -123,6 +123,44 @@ let private definitionSites (sources: (string * string[]) list) (name: string) =
         for i in 0 .. lines.Length - 1 do
             if pattern.IsMatch lines[i] then yield path, i + 1 ]
 
+/// Track the namespace and indentation-scoped modules enclosing a definition. AutoOpen ancestors
+/// do not form part of the qualifier a caller must write. In particular SeqT_V2 is AutoOpen, but
+/// its child SeqT is not: SeqT.mapM is qualified even though SeqT_V2.SeqT.mapM also resolves.
+let private qualifierAt (lines: string[]) (line: int) =
+    let namespacePattern = Regex @"^\s*namespace\s+(?<name>[\w.]+)"
+    let modulePattern = Regex @"^(?<indent>\s*)module\s+(?<attrs>(?:\[<.*?>\]\s*)*)(?:(?:private|internal)\s+)?(?<name>[\w.]+)\s*(?<equals>=)?\s*(?://.*)?$"
+    let mutable namespaceName = ""
+    let mutable modules : (int * string * bool * bool) list = []
+    let mutable pendingAutoOpen = false
+    for i in 0 .. line - 1 do
+        let text = lines[i].TrimStart '\uFEFF'
+        let trimmed = text.Trim ()
+        if trimmed <> "" && not (trimmed.StartsWith "//") && not (trimmed.StartsWith "#") then
+            let indentation = text.Length - text.TrimStart().Length
+            // Attributes and comments belong to the declaration that follows them, not the
+            // previous module. A file-level `module X` has no indentation-scoped body.
+            if not (trimmed.StartsWith "[<") then
+                modules <- modules |> List.filter (fun (indent, _, _, fileLevel) -> fileLevel || indent < indentation)
+            let ns = namespacePattern.Match text
+            let md = modulePattern.Match text
+            if ns.Success then
+                namespaceName <- ns.Groups["name"].Value
+                modules <- []
+                pendingAutoOpen <- false
+            elif md.Success then
+                let autoOpen = pendingAutoOpen || md.Groups["attrs"].Value.Contains "AutoOpen"
+                let fileLevel = not md.Groups["equals"].Success
+                modules <- modules @ [ indentation, md.Groups["name"].Value, autoOpen, fileLevel ]
+                pendingAutoOpen <- false
+            elif trimmed.StartsWith "[<" then
+                pendingAutoOpen <- pendingAutoOpen || trimmed.Contains "AutoOpen"
+            else
+                pendingAutoOpen <- false
+    [ if namespaceName <> "" then namespaceName
+      for _, name, autoOpen, _ in modules do
+          if not autoOpen then name ]
+    |> String.concat "."
+
 let absence (upstream: string) (warnOnly: bool) =
     if not (ensureUpstream upstream) then 2
     else
@@ -157,13 +195,14 @@ let absence (upstream: string) (warnOnly: bool) =
             match definitionSites sources c.Name with
             | [] -> report.Fail $"`{c.Name}` has no definition at all - claim was: {c.Claim}"
             | hits ->
-                match hits |> List.filter (fun (p, _) -> p <> c.ExpectedFile) with
+                let byPath = Map.ofList sources
+                match hits |> List.filter (fun (p, n) -> p <> c.ExpectedFile || qualifierAt byPath[p] n <> c.ExpectedModule) with
                 | [] -> ()
                 | unexpected ->
-                    let where = unexpected |> List.map (fun (p, n) -> $"{p}:{n}") |> String.concat "; "
+                    let where = unexpected |> List.map (fun (p, n) -> $"{p}:{n} (scope {qualifierAt byPath[p] n})") |> String.concat "; "
                     report.Fail
                         $"QUALIFIED-ONLY BROKEN: `{c.Name}` is now defined outside \
-                          {c.ExpectedFile}: {where}\n      claim was: {c.Claim}"
+                          {c.ExpectedModule} in {c.ExpectedFile}: {where}\n      claim was: {c.Claim}"
 
         let total = List.length absent + List.length present + List.length qualifiedOnly
         printfn "%d absence claims, %d presence claims, %d qualified-only claims  (%d total)"

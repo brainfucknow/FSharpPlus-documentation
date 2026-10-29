@@ -6,14 +6,14 @@ which this work has no push access to.
 
 ## Base and application
 
-Generated against **`44ebc378fa403400a343784e4285b3fd2672b363`** (2026-02-13, release 1.9.1) — the
+Generated against **`d1643d2ac9346c6b2e6bf52765a0648177b5ed9e`** (2026-01-11, tag `v1.9.1`) — the
 commit pinned in [`../upstream.json`](../upstream.json).
 
 ```sh
 git clone https://github.com/fsprojects/FSharpPlus.git
 cd FSharpPlus
 git submodule update --init            # external/FSharp.TypeProviders.SDK, needed to build
-git checkout 44ebc378fa403400a343784e4285b3fd2672b363
+git checkout d1643d2ac9346c6b2e6bf52765a0648177b5ed9e
 git am /path/to/patch/*.patch
 ```
 
@@ -63,8 +63,10 @@ up. The new page states which four modules are `AutoOpen`, which are not, and gi
 
 ## What was verified, and how
 
-Everything below was run locally against the base commit with .NET SDK 8.0.129 (matching the
-`global.json` pin), not asserted from reading:
+The original series was checked locally with .NET SDK 8.0.129. The replay commit IDs and timings
+below record that historical validation, rather than identifying commits supplied by `git am`.
+After changing the base pin or patches, repeat the application and build checks against the declared
+base; the repository's current verification SDK is pinned in `../global.json`.
 
 - **Every commit in the series builds, so the series is bisectable.** Each commit was checked out in
   turn and built with `dotnet build src/FSharpPlus.Docs/FSharpPlus.Docs.fsproj -c Release`:
@@ -108,12 +110,13 @@ Deliberately left out rather than guessed at:
 - **A value-assertion runner for the 84 `// val` claims in the docs.** `src/FSharpPlus.Docs/Program.fs`
   is `let main argv = 0`, so the project proves the pages *compile* and never checks what they
   evaluate to. Closing that is a larger change and needs a maintainer's view on the mechanism; the
-  approach used in this repo is in [`../tools/extract_snippets.py`](../tools/extract_snippets.py).
+  approach used in this repo is in [`../tools/Verify/Generate.fs`](../tools/Verify/Generate.fs).
 - **A `dotnet fsi` job.** Upstream PR #372 hit `Type constraint mismatch when applying the default type
   'obj'` in a page that compiled fine as a project, so FSI and project compilation disagree on
   SRTP-heavy code. Worth a second CI target, but it is a CI-policy change rather than a docs fix.
-- **The remaining coverage gap.** 53 of 192 public functions in the `AutoOpen` `Operators` module have
-  zero mentions anywhere in `docsrc/content` — see [`../tools/coverage_gap.py`](../tools/coverage_gap.py).
-  Verified examples for 21 of them live in
-  [`../reference/generic-functions.md`](../reference/generic-functions.md) and could be contributed
-  upstream, but that is a much larger patch and is better proposed after the smaller ones land.
+- **The remaining coverage gap.** The `gap` command in [`../tools/Verify`](../tools/Verify) measures
+  functions with no mentions in upstream documentation at the current pin. Build the verifier and run
+  `dotnet tools/Verify/bin/Release/net8.0/verify.dll gap --upstream .upstream --covered-by reference/generic-functions.md`
+  from this repository to report the current totals. Verified examples in
+  [`../reference/generic-functions.md`](../reference/generic-functions.md) could be contributed upstream,
+  but that is a larger patch and is better proposed after the smaller ones land.

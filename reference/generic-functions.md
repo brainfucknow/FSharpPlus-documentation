@@ -12,7 +12,7 @@ every mention in `docsrc/content/*.fsx` at the pinned commit:
 
 ```
 public named functions in the AutoOpen Operators module: 192
-with zero mentions anywhere in upstream docsrc/content:   53  (27%)
+with zero mentions anywhere in upstream docsrc/content:   54  (28%)
 ```
 
 **Zero mentions** means no example, no prose, no passing reference — a model has nothing to imitate.
@@ -63,7 +63,7 @@ let grouped : (int * int list) list = groupBy (fun x -> x % 2) [1; 2; 3; 4]
 // val grouped : (int * int list) list = [(1, [1; 3]); (0, [2; 4])]
 ```
 
-Note `groupBy`'s return type: `Collection<Key * Collection<T>>` (`Operators.fs:1226`). For `list` that
+Note `groupBy`'s return type: `Collection<Key * Collection<T>>` (`Operators.fs:1205`). For `list` that
 is `(int * int list) list` — a list of tuples, not a `Map`. Models that assume a dictionary-shaped
 result get a type error, which is at least a loud failure.
 
@@ -94,13 +94,20 @@ let shortest : string = minBy (fun (s: string) -> s.Length) ["aa"; "c"; "bbb"]
 ```
 
 `pick` returns the projected value directly — **not** an option — and raises when nothing matches
-(`Operators.fs:694`). `tryFind` is the total counterpart.
+(`Operators.fs:684`). `tryPick` is the total counterpart: it preserves the chooser's projection and
+returns `None` when no value matches. `tryFind` instead returns an original input element.
 
 ```fsharp verify name=generic_pick
 open FSharpPlus
 
 let picked : string = pick (fun x -> if x > 1 then Some (string x) else None) [1; 2; 3]
 // val picked : string = "2"
+
+let projected : string option = tryPick (fun x -> if x > 1 then Some (string x) else None) [1; 2; 3]
+// val projected : string option = Some "2"
+
+let missing : string option = tryPick (fun x -> if x > 1 then Some (string x) else None) [0; 1]
+// val missing : string option = None
 ```
 
 ## Accumulating and limiting
@@ -142,12 +149,12 @@ let shouted : int * string = mapItem2 (fun (s: string) -> s.ToUpper ()) (1, "two
 // val shouted : int * string = (1, "TWO")
 ```
 
-`mapItem*` returns a tuple whose element type may change (`'T -> 'U`, `Operators.fs:1444`), so it is a
+`mapItem*` returns a tuple whose element type may change (`'T -> 'U`, `Operators.fs:1423`), so it is a
 lens-like update, not a mutation.
 
 ## `lift3`
 
-`lift2` is documented; `lift3` sitting immediately beside it (`Operators.fs:237`) is not mentioned once.
+`lift2` is documented; `lift3` sitting immediately beside it (`Operators.fs:220`) is not mentioned once.
 
 ```fsharp verify name=lift3_example
 open FSharpPlus
@@ -161,7 +168,7 @@ let shortCircuited : int option = lift3 (fun a b c -> a + b + c) (Some 1) None (
 
 ## `gets` — reading a projection of state
 
-`get` is documented; `gets` (`Operators.fs:1062`) is not. It is `get` composed with a projection.
+`get` is documented; `gets` (`Operators.fs:1041`) is not. It is `get` composed with a projection.
 
 ```fsharp verify name=state_gets
 open FSharpPlus
@@ -184,6 +191,7 @@ Deliberately not attempted here, with reasons rather than silence:
 | `setItem` | Mutates via `member set_Item` and returns `unit`, so it has no `// val` shape |
 | `ofBytesBE`, `toBytesBE`, `ofBytesWithOptions`, `toBigInt`, `isqrt`, `sqrtRem`, `getPi`, `getOne`, `getMinValue`, `getMaxValue`, `negate`, `tryNegate`, `trySubtract` | Numeric/`Math.Generic` surface; belongs with a numerics page |
 | `choosei` | Indexed functor; needs the `*i` indexed family covered together |
+| `liftA2` | Obsolete alias for `lift2`; use the current name instead |
 | `liftM`, `getEmpty` | Legacy/internal-ish aliases — worth confirming they are intended public API before documenting |
 
 Run `verify gap --upstream <path> --covered-by reference/generic-functions.md` for the live

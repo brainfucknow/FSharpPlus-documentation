@@ -25,10 +25,50 @@ permissions:
   contents: read
 
 env:
-  # Matches upstream's global.json pin, so the compiler enforcing our gates is the one upstream uses.
-  DOTNET_VERSION: "8.0.x"
+  # The skill's intentionally failing examples assert diagnostics from this exact SDK.
+  DOTNET_VERSION: "8.0.425"
 
 jobs:
+  skill:
+    name: skill examples and evaluation runner tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compile skill examples and verify expected diagnostics and output
+        run: python3 scripts/verify_fsharpplus_examples.py
+
+      - name: Evaluation runner regression tests
+        run: python3 -m unittest evals.test_run_ab
+
+  verifier-regressions:
+    name: verification tool regression tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build the verification tool
+        run: dotnet build tools/Verify/Verify.fsproj -c Release --nologo
+
+      - name: Verification tool regression tests
+        run: python3 -m unittest discover -s tools -p 'test_verifier*.py'
+
   claims:
     name: claims (citations, API claims, corpus, gap)
     runs-on: ubuntu-latest
@@ -68,7 +108,7 @@ jobs:
           set -o pipefail
           dotnet tools/Verify/bin/Release/net8.0/verify.dll gap --upstream .upstream \
             --covered-by reference/generic-functions.md \
-            --max-gap 53 | tee gap.txt
+            --max-gap 54 | tee gap.txt
           {
             echo "## Coverage gap"
             echo ""
@@ -140,7 +180,7 @@ jobs:
           dotnet tools/Verify/bin/Release/net8.0/verify.dll snippets --out build/verify --fsi
 
       - name: Execute value assertions under FSI
-        run: dotnet fsi --nologo build/verify/verify.fsx
+        run: dotnet fsi --nologo --warnaserror:64,44 build/verify/verify.fsx
 
       - name: Upload generated script on failure
         if: failure()

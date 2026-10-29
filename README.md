@@ -1,5 +1,20 @@
 # FSharpPlus-documentation
-FSharpPlus documentation
+An installable agent skill for the **FSharpPlus (F#+)** library for F#, supporting **Codex, Claude Code and GitHub Copilot**.
+
+## Install
+
+See [INSTALL.md](INSTALL.md) for project-local paths, commands for Bash and PowerShell, activation, updates and removal. Copy the complete [fsharpplus/](fsharpplus/) folder. Consuming projects do not need SwarmForge.
+
+## Build the portable archive
+
+From the repository root, use Python 3 to package only the skill, installation guide and license:
+
+```bash
+mkdir -p tmp
+python3 -m zipfile -c tmp/fsharpplus-skill.zip fsharpplus INSTALL.md LICENSE
+```
+
+Distribute `tmp/fsharpplus-skill.zip`; extract it before following the installation guide. Keep generated files and caches outside `fsharpplus/`. The archive excludes the repository workflow and evaluation tools.
 
 ## Verification
 

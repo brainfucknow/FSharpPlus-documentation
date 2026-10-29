@@ -1,9 +1,10 @@
 ---
 name: fsharpplus
+license: MIT
 description: Use for FSharpPlus or F#+; code containing `open FSharpPlus`; polymorphic F# `map`, `bind`, or `traverse`; operators `>>=`, `<!>`, `<*>`, or `>=>`; F# monad transformers ReaderT, StateT, OptionT, or ResultT; the `monad` computation expression; F# lenses/optics; or SRTP and "member constraint" compiler errors in code that opens FSharpPlus. Use even when the user does not name the library but the code clearly uses these APIs.
 ---
 
-F#+ provides generic programming over F# types through statically resolved type parameters (SRTP). It extends core F# rather than replacing it; concrete core modules remain the default for concrete code. This skill targets FSharpPlus 1.9.1.
+F#+ provides generic programming over F# types through statically resolved type parameters (SRTP). It extends core F# rather than replacing it; concrete core modules remain the default for concrete code. This skill targets FSharpPlus 1.9.1; its examples are verified with .NET SDK 8.0.425. For other versions, check the project's installed API and compile against that project. The license is in `LICENSE`; recipe provenance is in `references/use-case-sources.json`.
 
 ## Route the task
 

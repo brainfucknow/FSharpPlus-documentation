@@ -67,3 +67,6 @@ __pycache__/
 # Verification tool build output
 tools/Verify/bin/
 tools/Verify/obj/
+
+# Skill evaluation runs
+evals/workspace/

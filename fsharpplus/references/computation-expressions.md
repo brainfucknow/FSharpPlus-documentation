@@ -55,3 +55,32 @@ let combined: int option = applicative {
     and! y = Some 2
     return x + y }
 ```
+
+### Independent Result checks with zapp
+
+Use `zapp` for independent Result-returning checks with appendable errors. In contrast, `applicative` uses ordinary `lift2` and keeps the first Result error, even though it also uses `and!`.
+
+```fsharp
+#r "nuget: FSharpPlus, 1.9.1"
+open FSharpPlus
+let combine (name: Result<string, string list>) (age: Result<int, string list>) : Result<string * int, string list> = zapp {
+    let! n = name
+    and! a = age
+    return n, a }
+printfn "%A" (combine (Error ["name"]) (Error ["age"]))
+// expect: Error ["name"; "age"]
+printfn "%A" (combine (Error ["name"]) (Ok 35))
+// expect: Error ["name"]
+printfn "%A" (combine (Ok "Ada") (Error ["age"]))
+// expect: Error ["age"]
+printfn "%A" (combine (Ok "Ada") (Ok 35))
+// expect: Ok ("Ada", 35)
+let firstError: Result<string * int, string list> = applicative {
+    let! n = (Error ["name"] : Result<string, string list>)
+    and! a = (Error ["age"] : Result<int, string list>)
+    return n, a }
+printfn "ordinary=%A" firstError
+// expect: ordinary=Error ["name"]
+```
+
+`zapp`'s [MergeSources uses generic map2](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/src/FSharpPlus/Builders.fs#L313-L320). Error accumulation depends on the Result error type supporting F#+'s append/`Plus` operation. Non-sequential does not mean parallel; `and!` syntax alone promises neither concurrency nor accumulation. Use bind/`monad'` when a later check depends on an earlier successful value. See [operation selection and Validation compatibility](idioms-and-antipatterns.md#independent-result-validation).

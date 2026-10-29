@@ -63,7 +63,7 @@ New-Item -ItemType Directory -Path $skillParent -Force -ErrorAction Stop | Out-N
 Copy-Item -LiteralPath (Join-Path $pack 'fsharpplus') -Destination $destination -Recurse -ErrorAction Stop
 ```
 
-Open a new agent session after copying, or use your client's skill-reload command. Confirm that `fsharpplus` is available using the client's skill listing/menu. Then try: “Use the fsharpplus skill to explain when to use Validation instead of Result in this F#+ project.” Agents may also select it automatically from its description when a task involves F#+. Discovery and automatic selection depend on the client, settings and prompt; having the files on disk alone does not demonstrate live discovery.
+Open a new agent session after copying, or use your client's skill-reload command. Confirm that `fsharpplus` is available using the client's skill listing/menu. Then try: “Use the fsharpplus skill to combine independent Result-returning checks with zapp and accumulate their errors in this F#+ project.” Agents may also select it automatically from its description when a task involves F#+. Discovery and automatic selection depend on the client, settings and prompt; having the files on disk alone does not demonstrate live discovery.
 
 If discovery fails, check the repository root, exact `SKILL.md` capitalization, complete folder copy, skill enablement and supported client version. Do not put this pack in a custom-agent directory such as `.github/agents`.
 

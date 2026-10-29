@@ -7,14 +7,16 @@ skill writes better F#+ code than the same model without it.
 ## Method
 
 `evals.json` holds realistic tasks: extend a custom type for `map` and
-`traverse`, fix a `Validation` snippet that short-circuits, build a `ReaderT`
+`traverse`, fix independent `Result` checks that short-circuit, build a `ReaderT`
 stack, repair a value-restriction error, give a wrapper a full monad instance.
 Each has `checks`, fragments that must appear in the script's printed output.
 
 Nine practical scenarios add optional actions, mapping interop, state, optics,
-validation semantics, domain containers, codecs, and async routing. Their domains
+Result-native non-sequential validation semantics, domain containers, codecs, and async routing. Their domains
 differ from the recipes. Output matching is only a smoke test, so inspect
 generated source for hardcoded output and attribution claims.
+
+The validation regression tasks require Result values throughout, without a Validation round trip. `validation-accumulate` checks both errors in order, either single error, successful construction and a separate dependent-bind counter; `validation-semantics` uses a different domain. Review generated source for Result-native `zapp` use: output checks alone cannot prove the requested abstraction was used. Generic `map2`/`<.>` also accumulate appendable Result errors; ordinary `lift2`/`<*>`/`applicative` and qualified `Result.map2` keep the first error.
 
 `run_ab.py` runs every task through Claude Code or Codex with one model and
 two configurations. The `with_skill` runs are told to read

@@ -13,10 +13,16 @@
     },
     {
       "id": "validation-accumulate",
-      "prompt": "The F# script `validation-short-circuit.fsx` in the current directory (FSharpPlus 1.9.1) does not do what the author wants. They want both validation errors accumulated, so the program prints a failure containing both \"empty name\" and \"bad age\", and they want the final value converted to a plain `Result<string * int, string list>` before printing. Fix it. The corrected script must start with `#r \"nuget: FSharpPlus, 1.9.1\"` and end with a `printfn \"%A\"` of the Result value.",
-      "files": ["validation-short-circuit.fsx"],
+      "prompt": "The F# script `validation-short-circuit.fsx` in the current directory (FSharpPlus 1.9.1) loses an independent validation error. Fix it using Result-native non-sequential applicatives (zapp with let!/and!); keep Result values throughout, without Validation conversions. Print errors=Error [\"empty name\"; \"bad age\"], nameOnly=Error [\"empty name\"], ageOnly=Error [\"bad age\"], and success=Ok (\"Ada\", 35), in input order. Keep the separate dependent Result.bind example and print dependentCalls=0 to prove its binder was skipped. The script must start with `#r \"nuget: FSharpPlus, 1.9.1\"` and print computed values rather than hardcoded expected output.",
+      "files": [
+        "validation-short-circuit.fsx"
+      ],
       "checks": [
-        "Error [\"empty name\"; \"bad age\"]"
+        "errors=Error [\"empty name\"; \"bad age\"]",
+        "nameOnly=Error [\"empty name\"]",
+        "ageOnly=Error [\"bad age\"]",
+        "success=Ok (\"Ada\", 35)",
+        "dependentCalls=0"
       ]
     },
     {
@@ -93,7 +99,7 @@
     },
     {
       "id": "validation-semantics",
-      "prompt": "Write a self-contained FSharpPlus 1.9.1 script that accumulates `\"bad code\"` and `\"bad quantity\"` from independent validations, and successfully constructs `(\"ABC\", 2)`. Separately use dependent `Result.bind` with an initial error and a counter to prove its binder is skipped. Print `errors=`, `success=`, and `dependentCalls=`. The script must start with `#r \"nuget: FSharpPlus, 1.9.1\"`.",
+      "prompt": "Write a self-contained FSharpPlus 1.9.1 script that accumulates `\"bad code\"` and `\"bad quantity\"` from independent Result-returning checks using zapp with let!/and! (keep Result values throughout, without Validation conversions), and successfully constructs `(\"ABC\", 2)`. Separately use dependent `Result.bind` with an initial error and a counter to prove its binder is skipped. Print `errors=`, `success=`, and `dependentCalls=`. The script must start with `#r \"nuget: FSharpPlus, 1.9.1\"`.",
       "files": [],
       "checks": [
         "errors=Error [\"bad code\"; \"bad quantity\"]",

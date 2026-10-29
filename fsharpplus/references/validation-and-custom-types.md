@@ -4,32 +4,45 @@
 
 Accumulate independent diagnostics while keeping dependent checks short-circuiting. The distinction appears in [SafetyFirst error combination](https://github.com/ntwilson/SafetyFirst/blob/973fba6d9de8efce8b9f986775cf6b70a82c236f/SafetyFirst/ResultModule.fs#L12-L20) and [LABS warning transformation](https://github.com/labs-lang/labs/blob/482cf8f22db96eab844cab5677eda6b9ad7b8680/Frontend/Outcome.fs#L20-L29).
 
+For Result-returning checks, use `zapp` directly rather than converting through `Validation`. Here the trace shows that both independent check functions run, in deterministic left-to-right order.
+
 ```fsharp
 #r "nuget: FSharpPlus, 1.9.1"
 open FSharpPlus
-open FSharpPlus.Data
 
-let name text : Validation<string list, string> = if text = "" then Failure ["empty name"] else Success text
-let age value : Validation<string list, int> = if value < 18 then Failure ["under age"] else Success value
-let validate n a = lift2 tuple2 (name n) (age a)
-let both = validate "" 12 |> Validation.toResult
-let success = validate "Ada" 35 |> Validation.toResult
+let trace = ResizeArray<string>()
+let name text : Result<string, string list> =
+    trace.Add "name"
+    if text = "" then Error ["empty name"] else Ok text
+let age value : Result<int, string list> =
+    trace.Add "age"
+    if value < 18 then Error ["under age"] else Ok value
+let validate n a : Result<string * int, string list> = zapp {
+    let! validName = name n
+    and! validAge = age a
+    return validName, validAge }
+let both = validate "" 12
+let bothTrace = trace |> Seq.toList
+let nameOnly = validate "" 35
+let ageOnly = validate "Ada" 12
+let success = validate "Ada" 35
 let mutable dependentCalls = 0
-let dependent : Result<int,string> =
-    Error "missing id"
+let dependent : Result<int, string list> =
+    Error ["missing id"]
     |> Result.bind (fun id ->
         dependentCalls <- dependentCalls + 1
         Ok (id + 1))
 printfn "validation=%A;%A" both success
 // expect: validation=Error ["empty name"; "under age"];Ok ("Ada", 35)
+printfn "single=%A;%A" nameOnly ageOnly
+// expect: single=Error ["empty name"];Error ["under age"]
+printfn "trace=%A" bothTrace
+// expect: trace=["name"; "age"]
 printfn "dependent=%A;calls=%d" dependent dependentCalls
-// expect: dependent=Error "missing id";calls=0
+// expect: dependent=Error ["missing id"];calls=0
 ```
 
-Applicative construction evaluates its independent inputs; `and!` alone
-guarantees neither accumulation nor parallel execution. Binding skips a later
-binder but cannot undo eagerly performed work. See
-[Validation versus Result](idioms-and-antipatterns.md#validation-versus-result).
+The error type must support F#+'s append/`Plus` operation. Neither non-sequential applicatives nor `and!` alone guarantee parallel execution. The builder determines accumulation: `applicative` on Result keeps the first error, whereas `zapp` accumulates. Binding skips a later binder but cannot undo eagerly performed work. See [operation selection and existing Validation APIs](idioms-and-antipatterns.md#independent-result-validation) for a compiled comparison and pinned upstream sources. The external examples above motivate the diagnostic pattern; the Result-native implementation here uses FSharpPlus 1.9.1's non-sequential applicative.
 
 ## Domain containers
 

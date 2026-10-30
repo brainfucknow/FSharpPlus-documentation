@@ -11,20 +11,46 @@ let overGeneric: int list = map ((+) 1) [1; 2]
 let plain: int list = List.map ((+) 1) [1; 2]
 ```
 
-## Validation versus Result
+## Independent Result validation
 
-`Validation` accumulates errors through its applicative instance when the error type supports append; it deliberately is not a monad. `Result` binding stops at the first `Error`. Convert with `Validation.ofResult` and `Validation.toResult`.
+For independent checks that already return `Result`, prefer `zapp` with `let!`/`and!`, or generic `map2`/`(<.>)`. They accumulate errors when the error type supports F#+'s append/`Plus` operation, such as `string list`; no `Validation` conversion is needed. See the [four-state recipe](validation-and-custom-types.md#diagnostic-semantics).
+
+The operation matters: generic `map2` and `(<.>)` on `Result` accumulate, while ordinary `lift2`, `(<*>)`, `applicative`, and qualified `Result.map2` retain the first error. Do not replace generic `map2` with `Result.map2` when accumulation is intended. This is an intentional exception to preferring concrete functions in monomorphic code.
+
+```fsharp
+#r "nuget: FSharpPlus, 1.9.1"
+open FSharpPlus
+let badName: Result<string, string list> = Error ["name"]
+let badAge: Result<int, string list> = Error ["age"]
+let accumulated: Result<string * int, string list> = map2 tuple2 badName badAge
+let zipped: Result<string * int, string list> = tuple2 <!> badName <.> badAge
+let ordinary: Result<string * int, string list> = lift2 tuple2 badName badAge
+let applied: Result<string * int, string list> = tuple2 <!> badName <*> badAge
+let qualified: Result<string * int, string list> = Result.map2 tuple2 badName badAge
+printfn "accumulate=%A;%A" accumulated zipped
+// expect: accumulate=Error ["name"; "age"];Error ["name"; "age"]
+printfn "first=%A;%A;%A" ordinary applied qualified
+// expect: first=Error ["name"];Error ["name"];Error ["name"]
+```
+
+Non-sequential applicatives describe how effects combine; they do not guarantee parallel execution. `and!` alone does not imply accumulation either: the builder and type select the operations. For dependent checks, use `Result.bind` or a monadic CE; an `Error` skips the later binder, not work already evaluated before binding.
+
+### Existing Validation APIs
+
+`Validation` remains supported; the 1.9.1 source does not justify calling it deprecated. Its ordinary applicative accumulates appendable errors, which can matter for existing APIs or generic algorithms expressed through ordinary `lift2`/`(<*>)` rather than non-sequential operations. It has no generic monadic `Bind`. Keep it at such boundaries; do not introduce a round trip solely to accumulate existing Result errors.
 
 ```fsharp
 #r "nuget: FSharpPlus, 1.9.1"
 open FSharpPlus
 open FSharpPlus.Data
-let badName: Validation<string list, string> = Failure ["name"]
-let badAge: Validation<string list, int> = Failure ["age"]
-let accumulated: Validation<string list, string * int> = lift2 tuple2 badName badAge
-let stopped: Result<int, string> = Error "first" >>= fun _ -> Error "second"
-let roundTrip: Result<int, string> = Error "x" |> Validation.ofResult |> Validation.toResult
+let left: Validation<string list, string> = Failure ["name"]
+let right: Validation<string list, int> = Failure ["age"]
+let existingApi: Validation<string list, string * int> = lift2 tuple2 left right
+printfn "%A" (Validation.toResult existingApi)
+// expect: Error ["name"; "age"]
 ```
+
+Pinned FSharpPlus 1.9.1 sources: [zip apply and generic Map2](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/src/FSharpPlus/Control/ZipApplicative.fs#L98-L159) call `Result.apply2With Plus.Invoke`; [error combination](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/src/FSharpPlus/Extensions/Result.fs#L177-L181) appends left-to-right. Compare [ordinary Result apply/map2](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/src/FSharpPlus/Extensions/Result.fs#L22-L50) and [Validation instances](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/src/FSharpPlus/Data/Validation.fs#L274-L308).
 
 ## NonEmptyList and DList
 

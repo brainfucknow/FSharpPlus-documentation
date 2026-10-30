@@ -8,6 +8,7 @@ All examples assume `#r "nuget: FSharpPlus, 1.9.1"` followed by `open FSharpPlus
 | `bind` | `('T -> Monad<'U>) -> Monad<'T> -> Monad<'U>` | `(>>=) (source, binder)` | `let _: int option = bind (fun x -> Some (x + 1)) (Some 2)` |
 | `result` | `'T -> Applicative<'T>` | `Return value` | `let returned: int option = result 3` |
 | `lift2` | `('T -> 'U -> 'V) -> Applicative<'T> -> Applicative<'U> -> Applicative<'V>` | `Lift2 (f, x, y)` (or applicative fallback) | `let _: int option = lift2 (+) (Some 2) (Some 3)` |
+| `map2` | `('T -> 'U -> 'V) -> ZipApplicative<'T> -> ZipApplicative<'U> -> ZipApplicative<'V>` | `Map2 (f, x, y)` (or zip fallback) | `let _: Result<int * int, string list> = map2 tuple2 (Error ["left"]) (Error ["right"])` |
 | `traverse` | `('T -> Functor<'U>) -> Traversable<'T> -> Functor<Traversable<'U>>` | `Traverse (source, f)` | `let _: int list option = traverse (fun x -> Some (x + 1)) [1; 2]` |
 | `sequence` | `Traversable<Functor<'T>> -> Functor<Traversable<'T>>` | `Sequence source` | `let _: int list option = sequence [Some 1; Some 2]` |
 | `fold` | `('State -> 'T -> 'State) -> 'State -> Foldable<'T> -> 'State` | `Fold (source, folder, state)` | `let _: int = fold (+) 0 [1; 2]` |
@@ -25,9 +26,12 @@ All examples assume `#r "nuget: FSharpPlus, 1.9.1"` followed by `open FSharpPlus
 | `(>>=)` / `(=<<)` | monadic bind / flipped bind | `(>>=)` | `let _ = (Some 1 >>= (fun x -> Some (x + 1)), (fun x -> Some (x + 1)) =<< Some 1)` |
 | `(<!>)` | functor map | `(<!>)` or `Map` | `let _: int option = ((+) 1) <!> Some 2` |
 | `(<*>)` | applicative apply | `(<*>)` | `let _: int option = Some ((+) 1) <*> Some 2` |
+| `(<.>)` | non-sequential/zip applicative apply | `(<.>)` | `let _: Result<int * int, string list> = tuple2 <!> (Error ["left"] : Result<int, string list>) <.> (Error ["right"] : Result<int, string list>)` |
 | `(>=>)` / `(<=<)` | left-to-right / right-to-left Kleisli composition | `(>=>)` (bind fallback) | `let _ = (((fun x -> Some (x + 1)) >=> (fun x -> Some (x * 2))) 2, ((fun x -> Some (x * 2)) <=< (fun x -> Some (x + 1))) 2)` |
 | `(++)` | generic append | `(+)` / append dispatcher | `let _: string = "a" ++ "b"` |
 | `(\|>>)` | functor map with the source first | `(<!>)` or `Map` | `let _: int list = [1; 2] \|>> ((+) 1)` |
+
+For `Result`, generic `map2` and `(<.>)` accumulate appendable errors. Ordinary `lift2`, `(<*>)`, `applicative`, and qualified `Result.map2` keep the first error. See the [compiled comparison and pinned sources](idioms-and-antipatterns.md#independent-result-validation). Non-sequential behavior is type-dependent: on lists these operations zip rather than form a cartesian product; it does not imply parallel execution.
 
 ## Names that do not exist
 

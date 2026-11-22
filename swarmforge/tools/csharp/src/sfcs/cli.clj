@@ -1,0 +1,390 @@
+(ns sfcs.cli
+  "Shared .NET tool wrapper for SwarmForge roles."
+  (:require [babashka.fs :as fs]
+            [clojure.string :as str]
+            [sfcore.changes :as changes]
+            [sfcore.command :as command]
+            [sfcore.crap :as crap]
+            [sfcore.git :as git]
+            [sfcore.jscpd :as jscpd]
+            [sfcore.outcome :as outcome]
+            [sfcore.shell :as shell]
+            [sfcore.stryker :as stryker]
+            [sfcs.cobertura :as cob]
+            [sfcs.coverage :as coverage]
+            [sfcs.measurement :as measurement]
+            [sfcs.pin :as pin]
+            [sfcs.project :as project]))
+
+(def tmp "tmp")
+(def coverage-dir (str (fs/path tmp "coverage")))
+(def coverage-settings (str (fs/path tmp "dotnet-coverage.xml")))
+(def jscpd-dir (str (fs/path tmp "jscpd")))
+(def stryker-dir (str (fs/path tmp "stryker")))
+
+(def languages
+  "Per-language profiles; :compiled-methods? skips C# signature widening, :no-mutation gives why Stryker.NET cannot mutate,
+  :expecto? selects properties in Expecto test projects by their declared list."
+  {:csharp {:name "sf-cs" :label "C#" :extension ".cs" :jscpd ["--format" "csharp"]}
+   :fsharp {:name "sf-fs" :label "F#" :extension ".fs" :jscpd ["--format" "fsharp"]
+            :compiled-methods? true :no-mutation "Stryker.NET supports C# only" :expecto? true}
+   :vbnet {:name "sf-vb" :label "VB.NET" :extension ".vb"
+           :jscpd ["--format" "visual-basic" "--formats-exts" "visual-basic:vb"]
+           :compiled-methods? true :no-mutation "Stryker.NET loads only C# and F# projects"}})
+(def ^:dynamic *language* (:csharp languages))
+
+(defn- usage []
+  (str "usage: " (:name *language*) " <command> [options]
+
+  tools                       restore local dotnet tools and check node, npx, dotnet
+  test [dotnet test args]     unit and acceptance tests (Category!=Property" (when (:expecto? *language*) "; Expecto: outside the SwarmForgePropertyTestList list") ")
+  property                    property tests only (Category=Property" (when (:expecto? *language*) "; Expecto: the SwarmForgePropertyTestList list") ")
+  coverage [--include-test-assemblies] [dotnet test args]
+                              tests under dotnet-coverage; include test helpers/methods only when opted in;
+                              cobertura files under " coverage-dir "/;
+                              needs dotnet-coverage pinned in a committed tool manifest
+                              at the repository root
+  crap [--all] [--base REF]   CRAP per changed method from " coverage-dir "/; exit 1 over " crap/crap-limit "
+       [--no-executable-code PATH ...]
+                              exit 2 for unmeasured source files; explicitly declare no-code files
+  dry [--all] [--base REF] [--min-tokens N]
+                              jscpd clones touching changed lines; exit 1 if any
+  mutate [--base REF] [--all] [--report-only] [-- stryker args]
+                              " (if (:no-mutation *language*) (str "unsupported for " (:label *language*) "; exit 2")
+                                    (str "Stryker on changed files (--since); exit 1 on survivors;
+                              needs dotnet-stryker pinned in a committed tool manifest
+                              at the repository root")) "
+
+Every command runs from the task worktree. --base defaults to SWARMFORGE_BASE, main, or master."))
+
+(def option-spec
+  {:coerce {:all :boolean :report-only :boolean :help :boolean :min-tokens :long
+            :base :string :report :string :no-executable-code [:string]
+            :include-test-assemblies :boolean}
+   :alias {:h :help}})
+
+(defn- changed-for [opts]
+  (git/changed-since-base opts [(str "*" (:extension *language*))]))
+
+(defn- require-tool-run [command args]
+  (let [status (shell/run command args)]
+    (when-not (zero? status)
+      (throw (outcome/usage-error (str command " " (str/join " " args) " exited " status))))))
+
+(defn- cmd-tools [_]
+  (let [missing (remove shell/available? ["dotnet" "node" "npx"])]
+    (when (seq missing)
+      (throw (outcome/usage-error (str "missing on PATH: " (str/join ", " missing))))))
+  (require-tool-run "dotnet" ["tool" "restore"])
+  (shell/run "npx" ["--yes" "jscpd@4" "--version"]))
+
+(def ^:private skipped-dir-names #{"bin" "obj" "tmp" "node_modules"})
+(def ^:private project-extensions #{"fsproj" "csproj" "vbproj"})
+(def ^:private property-list-element project/property-list-element)
+
+(defn- skipped-dir? [path]
+  (let [name (fs/file-name path)]
+    (or (contains? skipped-dir-names name) (str/starts-with? name "."))))
+
+(defn- project-paths
+  "Project files under `dir`, outside build output, scratch and hidden directories."
+  [dir]
+  (mapcat (fn [path]
+            (cond
+              (fs/directory? path {:nofollow-links true}) (when-not (skipped-dir? path) (project-paths path))
+              (contains? project-extensions (fs/extension path)) [path]))
+          (fs/list-dir dir)))
+
+(defn- read-test-project
+  "The test project at `path`, or nil when it is not one."
+  [root path]
+  (when-let [project (project/test-project (slurp (str path)) (= "fsproj" (fs/extension path)))]
+    (assoc project :path (str (fs/relativize root path)))))
+
+(defn- test-projects [root]
+  (->> (project-paths root)
+       (keep (partial read-test-project root))
+       (sort-by :path)))
+
+(defn- require-property-lists [projects]
+  (when-let [undeclared (seq (filter #(and (:expecto? %) (nil? (:property-list %))) projects))]
+    (throw (outcome/usage-error
+            (str (str/join ", " (map :path undeclared))
+                 ": Expecto test project without " property-list-element "; add <" property-list-element
+                 ">NAME</" property-list-element "> naming the testList that holds its property tests")))))
+
+(defn- filter-literal
+  "`text` escaped so a vstest filter matches it literally."
+  [text]
+  (str/replace text #"[\\()&|=!~]" #(str "\\" %)))
+
+(defn- category-filter [property?]
+  (if property? "Category=Property" "Category!=Property"))
+
+(defn- project-filter [{:keys [expecto? property-list]} property?]
+  (if expecto?
+    (str "FullyQualifiedName" (if property? "~" "!~") (filter-literal property-list) ".")
+    (category-filter property?)))
+
+(defn- test-runs
+  "The `dotnet test` arguments of each run: one per test project once the tree
+  holds an Expecto test project, since Expecto has no traits; else one run
+  selecting by the Category trait."
+  [property?]
+  (let [projects (when (:expecto? *language*)
+                   (test-projects (fs/normalize (fs/absolutize (shell/in-dir ".")))))]
+    (if (some :expecto? projects)
+      (do (require-property-lists projects)
+          (mapv (fn [project] ["test" (:path project) "--filter" (project-filter project property?)]) projects))
+      [["test" "--filter" (category-filter property?)]])))
+
+(defn- run-tests
+  "Runs every run with `args`; the first failing status in run order, else 0."
+  [runs args]
+  (let [statuses (mapv #(shell/run "dotnet" (into % args)) runs)]
+    (or (first (remove zero? statuses)) outcome/exit-ok)))
+
+(defn- cmd-test [{:keys [args]}]
+  (run-tests (test-runs false) args))
+
+(defn- cmd-property [{:keys [args]}]
+  (run-tests (test-runs true) args))
+
+(defn- committed?
+  "Whether `relative` is in HEAD with no uncommitted changes."
+  [root relative]
+  (and (git/succeeds? ["cat-file" "-e" (str "HEAD:" relative)] :dir root)
+       (git/succeeds? ["diff" "--quiet" "HEAD" "--" relative] :dir root)))
+
+(defn- pin-refusal
+  "Why the pin of `tool` that `dotnet tool list` reports cannot be used, or nil."
+  [tool root listed]
+  (if-let [listed-path (pin/listed-manifest tool listed)]
+    (let [manifest (str (fs/real-path listed-path))
+          relative (pin/relative-to-root root manifest)]
+      (cond
+        (nil? relative) (pin/outside tool root manifest)
+        (not (contains? pin/root-manifests relative)) (pin/below-root tool (:name *language*) root manifest)
+        (not (committed? root relative)) (pin/not-committed tool manifest)))
+    (pin/not-found tool root (:exit listed))))
+
+(defn- require-pinned-tool
+  "Stops unless a committed root manifest pins `tool` and its probe command starts."
+  [tool]
+  (let [root (str (fs/real-path (git/repo-root)))]
+    (when-let [refusal (pin-refusal tool root (shell/capture "dotnet" (pin/list-args tool)))]
+      (throw (outcome/usage-error refusal))))
+  (let [{:keys [exit]} (shell/capture "dotnet" (:probe tool))]
+    (when-not (zero? exit)
+      (throw (outcome/usage-error (pin/not-runnable tool (:name *language*) exit))))))
+
+(defn- remove-stale-coverage []
+  (fs/create-dirs (shell/in-dir coverage-dir))
+  (doseq [stale (cob/find-cobertura-files (shell/in-dir coverage-dir))]
+    (fs/delete-tree (fs/parent stale))))
+
+(defn- walked-projects
+  "The projects under `root`, as sorted paths relative to it."
+  [root]
+  (sort (map #(str (fs/relativize root %)) (project-paths root))))
+
+(defn- nothing-to-measure [root]
+  (outcome/usage-error (str "no project to measure under " root ": it holds no project, or only test projects; run "
+                            (:name *language*) " coverage from the repository or solution root")))
+
+(defn- restored?
+  "Restores `project` so its evaluation reads restored values; warns when that fails."
+  [project]
+  (or (zero? (shell/run "dotnet" ["restore" project]))
+      (do (shell/warn (:name *language*) (str "dotnet restore " project " failed; it is not evaluated, "
+                                              "so if it is a test project its test code is scored"))
+          false)))
+
+(defn- evaluations
+  "The MSBuild evaluation of each of `projects` whose restore passed."
+  [projects]
+  (->> projects
+       (filter restored?)
+       (mapv #(shell/capture "dotnet" (coverage/evaluate-args %)))))
+
+(defn- measured-test-assemblies
+  "Test assemblies to exclude; rejects roots with no collectible project under the selected mode."
+  [root include-test-assemblies?]
+  (let [projects (walked-projects root)
+        evaluated (evaluations projects)]
+    (when (or (empty? projects) (and (not include-test-assemblies?) (seq evaluated) (every? coverage/test-project? evaluated)))
+      (throw (nothing-to-measure root)))
+    (when-not include-test-assemblies? (keep coverage/test-assembly evaluated))))
+
+(defn- collect-run
+  "Runs one `dotnet` run under dotnet-coverage into tmp/coverage/run-<i>/; returns its status."
+  [i run args]
+  (let [dir (fs/path coverage-dir (str "run-" i))]
+    (fs/create-dirs (shell/in-dir dir))
+    (shell/run "dotnet" (-> ["dotnet-coverage" "collect" "-s" coverage-settings "-f" "cobertura"
+                             "-o" (str (fs/path dir "coverage.cobertura.xml")) "--" "dotnet"]
+                            (into run)
+                            (into args)))))
+
+(defn- report-coverage-files []
+  (let [files (cob/find-cobertura-files (shell/in-dir coverage-dir))]
+    (when (empty? files)
+      (throw (outcome/usage-error (str "no coverage.cobertura.xml under " coverage-dir
+                                       "; dotnet-coverage wrote no Cobertura file"))))
+    (println (count files) "coverage file(s) under" coverage-dir)
+    outcome/exit-ok))
+
+(defn- coverage-args [args]
+  (let [[before after] (split-with #(not= "--" %) args)]
+    (loop [[arg & more] before result []]
+      (cond
+        (nil? arg) (into result after)
+        (= arg "--include-test-assemblies")
+        (recur (if (#{"true" "false"} (first more)) (rest more) more) result)
+        (str/starts-with? arg "--include-test-assemblies=") (recur more result)
+        :else (recur more (conj result arg))))))
+
+(defn- cmd-coverage [{:keys [args opts]}]
+  (require-pinned-tool pin/dotnet-coverage)
+  (let [runs (test-runs false)
+        root (str (fs/real-path (shell/in-dir ".")))]
+    (remove-stale-coverage)
+    (shell/write-file coverage-settings (coverage/settings-xml root (measured-test-assemblies root (:include-test-assemblies opts))))
+    (let [statuses (doall (map-indexed (fn [i run] (collect-run (inc i) run (coverage-args args))) runs))]
+      (if (every? coverage/run-passed? statuses)
+        (report-coverage-files)
+        outcome/exit-findings))))
+
+(defn- merge-methods
+  "Keeps the best-covered entry when several test runs cover the same method."
+  [files]
+  (->> files
+       (mapcat #(cob/parse-cobertura (slurp %) (when (:compiled-methods? *language*)
+                                                  {:extension (:extension *language*) :strict? true})))
+       (reduce (fn [best method]
+                 (let [key ((juxt :file :class-name :name :signature) method)
+                       seen (get best key)]
+                   (if (or (nil? seen) (> (:coverage method) (:coverage seen)))
+                     (assoc best key method)
+                     best)))
+               {})
+       vals))
+
+(defn- source-lines [root file]
+  (let [full (str (fs/path root file))]
+    (when (fs/exists? full)
+      (str/split (slurp full) #"\r?\n" -1))))
+
+(defn- select-method [root changed read-source method]
+  (let [reported (:file method)
+        file (if changed
+               (changes/to-changed-path reported changed root)
+               (if (fs/absolute? reported)
+                 (str (fs/relativize root reported))
+                 reported))]
+    (when file
+      (let [source (when-not (:compiled-methods? *language*) (read-source file))
+            signature-line (if source
+                             (cob/signature-start source (:first-line method))
+                             (:first-line method))]
+        (when (or (nil? changed) (changes/overlaps? file signature-line (:last-line method) changed))
+          (assoc method :file file :signature-line signature-line))))))
+
+(defn- source-candidates
+  "Existing selected-language sources in the changed scope, or all Git-listed sources."
+  [root changed extension]
+  (let [paths (if changed
+                (keys changed)
+                (str/split (git/git ["ls-files" "-z" "--cached" "--others" "--exclude-standard"
+                                    "--full-name" "--" (str "*" extension)] :dir root) #"\u0000"))]
+    (into (sorted-set)
+          (filter #(and (str/ends-with? % extension) (fs/regular-file? (fs/path root %))))
+          paths)))
+
+(defn- declaration-path [root scope declared]
+  (let [file (fs/normalize (fs/absolutize (shell/in-dir declared)))
+        relative (str/replace (str (fs/relativize root file)) "\\" "/")]
+    (when-not (and (fs/regular-file? file)
+                   (.startsWith (fs/real-path file) (fs/real-path root))
+                   (contains? scope relative))
+      (throw (outcome/usage-error
+               (str "--no-executable-code " declared ": expected an existing in-scope source file inside " root))))
+    relative))
+
+(defn- no-code-exemptions
+  "Validated caller assertions, normalized and unique; they never remove scored methods."
+  [root scope declarations]
+  (into (sorted-set) (map (partial declaration-path root scope)) declarations))
+
+(defn- cmd-crap [{:keys [opts]}]
+  (let [dir (or (:report opts) coverage-dir)
+        files (cob/find-cobertura-files (shell/in-dir dir))]
+    (when (empty? files)
+      (throw (outcome/usage-error (str "no coverage.cobertura.xml under " dir "; run " (:name *language*) " coverage first"))))
+    (let [root (git/repo-root)
+          changed (changed-for opts)
+          scope (source-candidates root changed (:extension *language*))
+          exempt (no-code-exemptions root scope (:no-executable-code opts))
+          read-source (memoize (partial source-lines root))
+          methods (merge-methods files)
+          missing (measurement/missing-files root scope exempt methods)
+          selected (->> methods
+                        (keep (partial select-method root changed read-source))
+                        (sort-by (juxt (comp - :crap) :file :first-line)))]
+      (doseq [file exempt] (println "EXEMPT no executable code:" file))
+      (doseq [file missing] (println "UNMEASURED source:" file))
+      (if (seq missing)
+        outcome/exit-usage
+        (shell/emit (crap/review crap/crap-limit selected cob/format-method "method" changed))))))
+
+(defn- cmd-dry [{:keys [opts]}]
+  (let [report-path (str (fs/path jscpd-dir "jscpd-report.json"))
+        status (if (:report-only opts)
+                 outcome/exit-ok
+                 (do (fs/create-dirs (shell/in-dir jscpd-dir))
+                     (fs/delete-if-exists (shell/in-dir report-path))
+                     (shell/run "npx" (-> ["--yes" "jscpd@4"]
+                                         (into (:jscpd *language*))
+                                         (into ["--min-tokens" (str (or (:min-tokens opts) 50))
+                                                "--reporters" "json" "--output" jscpd-dir
+                                                "--ignore" "**/bin/**,**/obj/**,**/*.g.cs,**/*.Designer.cs,**/*.Designer.vb,**/Migrations/**,**/tmp/**"
+                                                "."])))))]
+    (cond
+      (and (not (zero? status)) (not (shell/exists? report-path))) status
+      (not (shell/exists? report-path)) (throw (outcome/usage-error (str report-path " not found")))
+      :else (let [clones (jscpd/parse-clones (shell/read-json report-path))
+                  changed (changed-for opts)]
+              (shell/emit (jscpd/review clones changed (when changed (git/repo-root))))))))
+
+(defn- cmd-mutate [{:keys [opts extra]}]
+  (when-let [reason (:no-mutation *language*)]
+    (throw (outcome/usage-error (str (:label *language*) " mutation is unsupported; " reason))))
+  (let [report-path (str (fs/path stryker-dir "reports" "mutation-report.json"))
+        status (if (:report-only opts)
+                 outcome/exit-ok
+                 (do (require-pinned-tool pin/stryker)
+                     (fs/create-dirs (shell/in-dir stryker-dir))
+                     (fs/delete-if-exists (shell/in-dir report-path))
+                     (shell/run "dotnet"
+                                (into (cond-> ["stryker" "--reporter" "json" "--reporter" "progress" "--output" stryker-dir]
+                                        (not (:all opts)) (conj (str "--since:" (git/base-ref opts))))
+                                      extra))))]
+    (cond
+      (and (not (zero? status)) (not (shell/exists? report-path)))
+      (throw (outcome/usage-error (str "dotnet stryker exited " status " and wrote no report")))
+      (not (shell/exists? report-path)) (throw (outcome/usage-error (str report-path " not found")))
+      :else (shell/emit (stryker/review (stryker/parse-mutants (shell/read-json report-path)))))))
+
+(def ^:private commands
+  {"tools" cmd-tools "test" cmd-test "property" cmd-property "coverage" cmd-coverage
+   "crap" cmd-crap "dry" cmd-dry "mutate" cmd-mutate})
+
+(defn main
+  ([argv]
+   (command/main {:usage (usage) :commands commands :option-spec option-spec :help-option? true} argv))
+  ([language argv]
+   (binding [*language* (get languages language)]
+     (main argv))))
+
+(defn -main [& argv]
+  (shell/run-main "sf-cs" main argv))

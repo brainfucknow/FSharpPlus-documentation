@@ -2,20 +2,24 @@
 
 ## Generic versus concrete
 
-Use generic dispatch when the surrounding inline function is truly polymorphic or the container is an F#+ type. A known list gains nothing from SRTP; `List.map` gives simpler errors and makes intent explicit.
+Match the surrounding codebase. In code already written in F#+ style, generic `map`, `|>>`, `<!>`/`<*>`, `>=>`, `traverse`, and `monad`/`monad'` are idiomatic even on known types such as `list` or `option`, as upstream docs and tests do. Use them consistently there rather than mixing in `List.map` line by line.
+
+In a codebase that uses F#+ only incidentally, concrete module functions such as `List.map` or `Option.bind` are the better default. In new code with nothing to match, use generic forms when the code is meant to be polymorphic or uses F#+ types, and concrete ones otherwise. The trade-off is diagnostics: a concrete function fixes the type, so a mistake gives an ordinary type error, while generic dispatch can fail as an overload or member-constraint error that is harder to read (see `srtp-errors.md`). Both forms below compile to the same value.
 
 ```fsharp
 #r "nuget: FSharpPlus, 1.9.1"
 open FSharpPlus
-let overGeneric: int list = map ((+) 1) [1; 2]
-let plain: int list = List.map ((+) 1) [1; 2]
+let generic: int list = map ((+) 1) [1; 2]
+let concrete: int list = List.map ((+) 1) [1; 2]
+printfn "%b" (generic = concrete)
+// expect: true
 ```
 
 ## Independent Result validation
 
 For independent checks that already return `Result`, prefer `zapp` with `let!`/`and!`, or generic `map2`/`(<.>)`. They accumulate errors when the error type supports F#+'s append/`Plus` operation, such as `string list`; no `Validation` conversion is needed. See the [four-state recipe](validation-and-custom-types.md#diagnostic-semantics).
 
-The operation matters: generic `map2` and `(<.>)` on `Result` accumulate, while ordinary `lift2`, `(<*>)`, `applicative`, and qualified `Result.map2` retain the first error. Do not replace generic `map2` with `Result.map2` when accumulation is intended. This is an intentional exception to preferring concrete functions in monomorphic code.
+The operation matters: generic `map2` and `(<.>)` on `Result` accumulate, while ordinary `lift2`, `(<*>)`, `applicative`, and qualified `Result.map2` retain the first error. Do not replace generic `map2` with `Result.map2` when accumulation is intended, even in a codebase that otherwise prefers concrete module functions.
 
 ```fsharp
 #r "nuget: FSharpPlus, 1.9.1"
@@ -89,6 +93,6 @@ let optional: int option = preview _Some (Some 4)
 
 ## Antipatterns
 
-Avoid long point-free chains of generic operators: intermediate types disappear and overload diagnostics become harder to locate. Name stages and annotate boundaries instead. Do not open all of `FSharpPlus` merely for one extension—qualify the extended module or open `FSharpPlus.Operators` narrowly.
+Long point-free chains of generic operators are idiomatic in F#+-style code, but they hide intermediate types, so an overload error can be hard to locate. When one fails, name the stages and annotate their boundaries until the error points at one step. Do not open all of `FSharpPlus` merely for one extension; qualify the extended module or open `FSharpPlus.Operators` narrowly.
 
-Prefer a built-in `async` or `task` computation expression when it directly describes the effect. Likewise, if another library deliberately provides a specialized `result` builder, use that builder rather than generic `monad`; specialization is often clearer than showcasing polymorphism.
+For `Async` or `Task`, the generic `monad` builder and the built-in `async` or `task` builders are both reasonable; follow what the codebase already uses. In code that uses F#+ only incidentally, the built-in builder usually reads more plainly. Likewise, if another library deliberately provides a specialized `result` builder and the codebase uses it, keep using that builder rather than switching to generic `monad`.

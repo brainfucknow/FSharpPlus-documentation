@@ -41,6 +41,7 @@ let citationMap : (string * string) list =
       "abstraction-zipapplicative.fsx",  "docsrc/content/abstraction-zipapplicative.fsx"
       "applicative-functors.fsx",        "docsrc/content/applicative-functors.fsx"
       "numerics.fsx",                    "docsrc/content/numerics.fsx"
+      "ComputationExpressions.fs",       "tests/FSharpPlus.Tests/ComputationExpressions.fs"
     ]
 
 /// "At this file:line in the pinned upstream, this substring is present."
@@ -92,6 +93,9 @@ let assertions : Assertion list =
       { File = "Operators.fs"; Line = 199; Contains = "Return.Invoke"; Claim = "result is backed by Return" }
       { File = "Operators.fs"; Line = 252; Contains = "let inline pur"; Claim = "pur is the zip-applicative lift - a DIFFERENT function from result" }
       { File = "Operators.fs"; Line = 252; Contains = "Pure.Invoke"; Claim = "pur is backed by Pure, not Return" }
+      { File = "ComputationExpressions.fs"; Line = 16; Contains = "let task<'t> = monad'<Task<'t>>"; Claim = "builders accept an explicit type argument (upstream test alias)" }
+      { File = "ComputationExpressions.fs"; Line = 98; Contains = "applicative<Validation<_,_>>"; Claim = "applicative accepts an explicit type argument" }
+      { File = "ComputationExpressions.fs"; Line = 141; Contains = "let lst: _ list = monad.plus"; Claim = "upstream annotates the binding without parentheses, partially open" }
       { File = "Operators.fs"; Line = 142; Contains = "(<!>)"; Claim = "<!> is map with the function first" }
       { File = "Operators.fs"; Line = 155; Contains = "(|>>)"; Claim = "|>> is map with the value first" }
       { File = "Operators.fs"; Line = 205; Contains = "(<*>)"; Claim = "<*> is sequential apply" }

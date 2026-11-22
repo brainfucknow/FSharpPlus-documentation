@@ -27,7 +27,7 @@ let nameOnly = validate "" 35
 let ageOnly = validate "Ada" 12
 let success = validate "Ada" 35
 let mutable dependentCalls = 0
-let dependent : Result<int, string list> =
+let dependent: Result<int, string list> =
     Error ["missing id"]
     |> Result.bind (fun id ->
         dependentCalls <- dependentCalls + 1
@@ -95,12 +95,12 @@ type NonEmpty<'T> = One of 'T | More of 'T * NonEmpty<'T> with
         let rec go item =
             match item with
             | One v -> map One (mapping v)
-            | More (h,t) -> lift2 (fun head tail -> More (head,tail)) (mapping h) (go t)
+            | More (h, t) -> lift2 (fun head tail -> More (head, tail)) (mapping h) (go t)
         go source
 let source = NonEmpty.Create [1; 2; 3] |> Option.get
 let optionOk: NonEmpty<int> option = traverse (fun x -> Some (x * 2)) source
 let optionBad: NonEmpty<int> option = traverse (fun x -> if x = 2 then None else Some x) source
-let resultOk: Result<NonEmpty<int>,string> = traverse (fun x -> Ok (x + 1)) source
+let resultOk: Result<NonEmpty<int>, string> = traverse (fun x -> Ok (x + 1)) source
 printfn "nonempty=%A;%A;%A" (optionOk |> Option.map (fun x -> x.Values)) optionBad (resultOk |> Result.map (fun x -> x.Values))
 // expect: nonempty=Some [2; 4; 6];None;Ok [2; 3; 4]
 printfn "empty=%A" (NonEmpty.Create ([]: int list))

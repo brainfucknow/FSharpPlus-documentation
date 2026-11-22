@@ -2,15 +2,17 @@
 
 ## Generic versus concrete
 
-Match the surrounding codebase. In code already written in F#+ style, generic `map`, `|>>`, `<!>`/`<*>`, `>=>`, `traverse`, and `monad`/`monad'` are idiomatic even on known types such as `list` or `option`, as upstream F#+ code does. Use them consistently there rather than mixing in `List.map` line by line.
+Match the surrounding codebase. In code already written in F#+ style, generic `map`, `|>>`, `<!>`/`<*>`, `>=>`, `traverse`, and `monad`/`monad'` are idiomatic even on known types such as `list` or `option`, as upstream docs and tests do. Use them consistently there rather than mixing in `List.map` line by line.
 
-In a codebase that uses F#+ only incidentally, concrete module functions such as `List.map` or `Option.bind` are the better default. The trade-off is diagnostics: a concrete function fixes the type, so a mistake gives an ordinary type error, while generic dispatch can fail as an overload or member-constraint error that is harder to read (see `srtp-errors.md`). Both forms below compile to the same value.
+In a codebase that uses F#+ only incidentally, concrete module functions such as `List.map` or `Option.bind` are the better default. In new code with nothing to match, use generic forms when the code is meant to be polymorphic or uses F#+ types, and concrete ones otherwise. The trade-off is diagnostics: a concrete function fixes the type, so a mistake gives an ordinary type error, while generic dispatch can fail as an overload or member-constraint error that is harder to read (see `srtp-errors.md`). Both forms below compile to the same value.
 
 ```fsharp
 #r "nuget: FSharpPlus, 1.9.1"
 open FSharpPlus
 let generic: int list = map ((+) 1) [1; 2]
 let concrete: int list = List.map ((+) 1) [1; 2]
+printfn "%b" (generic = concrete)
+// expect: true
 ```
 
 ## Independent Result validation

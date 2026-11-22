@@ -24,7 +24,7 @@ let resultValue: Result<int, string> = monad {
     return x + 1 }
 ```
 
-Both builders compile for `option` and `Result` and give the same value. Neither type has a delay of its own, so the lazy `monad` runs the body at once anyway; `monad'` says so directly. The choice matters for types that can delay, such as `Async`, `Lazy`, `seq`, and functions, where `monad` defers the body until the value is run.
+The lazy `monad` above and the strict `monad'` both compile for `option` and `Result` and give the same value. Neither type has a delay of its own, so `monad` runs the body at once anyway. `monad'` says so directly, which is why the repository's rough guide suggests it for `option`, `Result`, and `Choice`. The choice matters for types that can delay, such as `Async`, `Lazy`, `seq`, and functions, where `monad` defers the body until the value is run.
 
 ## Telling the builder its type
 
@@ -33,7 +33,7 @@ Builders are generic values, so the compiler often needs the result type. Annota
 ```fsharp
 #r "nuget: FSharpPlus, 1.9.1"
 open FSharpPlus
-let items: _ list = monad.plus {
+let items: _ list = monad.plus' {
     return 5
     return 6 }
 let (sameItems: list<_>) = monad.plus' {
@@ -63,6 +63,8 @@ printfn "task=%d" answer.Result
 printfn "%A" (check "" -1)
 // expect: Failure ["name"; "age"]
 ```
+
+`check` accumulates both errors because `Validation`'s own `<*>` and `Lift2` combine failures ([Validation.fs](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/src/FSharpPlus/Data/Validation.fs#L41-L50)). On `Result`, `applicative` keeps the first error; use `zapp` there.
 
 Use a type argument when one builder alias serves many expressions, or when no binding is available to annotate. Otherwise annotating the binding or the function's return type is the more common form.
 

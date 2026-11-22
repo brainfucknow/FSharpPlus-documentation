@@ -41,7 +41,7 @@ These public generic names are absent from the 1.9.1 `FSharpPlus.Operators` API:
 | Invented name | Use instead |
 |---|---|
 | `fmap` | `map` or `(<!>)` |
-| `pure` | `result` for monads and sequential applicatives; `pur` for zip applicatives (`zapp`, `(<.>)`). Both are public and they differ: on `list`, `result 1` is `[1]` while `pur 1` is an endless cycle of `1`. |
+| `pure` | `result` for monads and sequential applicatives; `pur` for zip applicatives (`zapp`, `(<.>)`). Both are public and they differ: on `list`, `result 1` is `[1]`, while `pur 1` is a cyclic infinite list, so `List.length`, `List.toArray`, or any full traversal of it never terminates. Only zip it against a finite list. |
 | `forM` | `traverse` with arguments in F#+ order |
 | `mapM` | `traverse`; the only `mapM` in 1.9.1 is the module function `SeqT.mapM` |
 

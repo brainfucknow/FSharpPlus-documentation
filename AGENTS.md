@@ -84,17 +84,18 @@ so porting operand order verbatim focuses the wrong thing while still compiling.
 ## 6. Annotate the binding when inference stalls
 
 The library is SRTP-heavy and CE builders are declared with an explicit type parameter, so
-return-type annotations are frequently needed. Annotate the **binding**, and prefer a partially open
-type so inference still does work:
+return-type annotations are frequently needed. Annotate the **binding** without parentheses, the
+dominant upstream form, and prefer a partially open type so inference still does work:
 
 ```fsharp
-let lst: _ list = monad.plus { ... }       // dominant upstream form
+let lst: _ list = monad.plus' { ... }
 let answer: Async<_> = monad.fx { ... }
 ```
 
 The parenthesised form `let (answer: Async<_>) = ...` is equivalent; upstream docs use it in two places.
-An explicit builder type argument also works: `let task<'t> = monad'<Task<'t>>`, or
-`applicative<Validation<_,_>> { ... }`.
+An explicit builder type argument also works: `let taskM<'t> = monad'<Task<'t>>`, or
+`applicative<Validation<_,_>> { ... }`. Upstream tests name the first alias `task`, which shadows
+F#'s built-in `task` builder; pick another name.
 
 This is a heuristic generalised from upstream examples, not a universal rule. Consult the skill's
 [SRTP error guide](fsharpplus/references/srtp-errors.md) for compiler-checked failure cases. In

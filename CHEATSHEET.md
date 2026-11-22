@@ -150,13 +150,15 @@ let asnNumber: Async<_> = monad.fx { ... }
 ```
 
 Annotate the **binding**, and prefer `Async<_>` or `_ list` over a fully-applied type so inference still
-does work. The parenthesised form `let (asnNumber: Async<_>) = ...` is equivalent; upstream docs use it
-at docsrc/content/computation-expressions.fsx:47 and :57.
+does work. The upstream line uses `monad.plus` on a list; list has no delay, so it behaves the same as
+the `monad.plus'` the rough guide above suggests. The parenthesised form
+`let (asnNumber: Async<_>) = ...` is equivalent; upstream docs use it at
+docsrc/content/computation-expressions.fsx:47 and :57.
 
 Because of that type parameter you can also pass the type to the builder itself:
-`let task<'t> = monad'<Task<'t>>` (upstream tests, ComputationExpressions.fs:16),
-`applicative<Validation<_,_>> { ... }` (ComputationExpressions.fs:98), and `monad<SeqT<Async<bool>, 't>>.plus` in
-the SeqT tests.
+`let task<'t> = monad'<Task<'t>>` (upstream tests, ComputationExpressions.fs:16; this name shadows
+F#'s built-in `task`, so pick another such as `taskM`), `applicative<Validation<_,_>> { ... }`
+(ComputationExpressions.fs:98), and `monad<SeqT<Async<bool>, 't>>.plus` in the SeqT tests.
 
 This guidance generalises from examples rather than restating a declaration. For compiler-checked
 failure cases and corrections, see the skill's [SRTP error guide](fsharpplus/references/srtp-errors.md).

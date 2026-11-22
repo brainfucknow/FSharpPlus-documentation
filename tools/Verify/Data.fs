@@ -126,7 +126,9 @@ let assertions : Assertion list =
       { File = "Lens.fs"; Line = 254; Contains = "(^?)"; Claim = "^? is preview, returns option" }
       { File = "Lens.fs"; Line = 257; Contains = "(^..)"; Claim = "^.. is toListOf" }
       { File = "Lens.fs"; Line = 263; Contains = "(<&>)"; Claim = "<&> lives in FSharpPlus.Lens, not FSharpPlus" }
-      { File = "Parsing.fs"; Line = 5; Contains = "AutoOpen"; Claim = "Parsing is AutoOpen - tryParse comes from 'open FSharpPlus'" }
+      { File = "Parsing.fs"; Line = 5; Contains = "AutoOpen"; Claim = "Parsing is AutoOpen - parseArray and tryParseArray come from 'open FSharpPlus'" }
+      { File = "Operators.fs"; Line = 1508; Contains = "let inline tryParse"; Claim = "tryParse is defined in the AutoOpen Operators module" }
+      { File = "Operators.fs"; Line = 1689; Contains = "(|Parsed|_|)"; Claim = "the Parsed active pattern is defined in Operators" }
       { File = "Memoization.fs"; Line = 8; Contains = "AutoOpen"; Claim = "Memoization is AutoOpen" }
       { File = "String.fs"; Line = 4; Contains = "RequireQualifiedAccess"; Claim = "extension modules are RequireQualifiedAccess" }
       { File = "Generic.fs"; Line = 12; Contains = "module Generic"; Claim = "Math.Generic is a plain module - needs its own open" }
@@ -206,8 +208,8 @@ let present : PresentName list =
       { Name = "unzip";       Claim = "generic unzip" }
       { Name = "tap";         Claim = "side-effect passthrough, |- flipped" }
       { Name = "memoizeN";    Claim = "from the AutoOpen Memoization module - note there is no plain `memoize`" }
-      { Name = "tryParse";    Claim = "from the AutoOpen Parsing module" }
-      { Name = "parse";       Claim = "from the AutoOpen Parsing module" }
+      { Name = "tryParse";    Claim = "from the AutoOpen Operators module" }
+      { Name = "parse";       Claim = "from the AutoOpen Operators module" }
       { Name = "view";        Claim = "lens read - needs open FSharpPlus.Lens" }
       { Name = "setl";        Claim = "lens write" }
       { Name = "over";        Claim = "lens modify" }

@@ -44,7 +44,7 @@ Notably **not** auto-opened — each needs an explicit `open`:
 | `map`, `bind`, `join`, `traverse`, `sequence`, `result`, `pur`, `zero`, `plus`, `foldMap`, `length` | `open FSharpPlus` | `Operators.fs:8-9` (`AutoOpen`) |
 | Operators `<!>` `<*>` `>>=` `>=>` `<|>` `++` `*>` `<*` `<.>` `.>` `<.` `=>>` | `open FSharpPlus` | `Operators.fs` (`AutoOpen`) |
 | CEs `monad`, `monad'`, `monad.plus`, `monad.plus'`, `applicative`, `applicative2/3`, `zapp`, `zapp2/3` | `open FSharpPlus` | `Builders.fs:99-100` (`AutoOpen`) |
-| `tryParse`, `parse`, `tryParseArray`, `parseArray`, `(\|Parsed\|_\|)` | `open FSharpPlus` | `Parsing.fs:5-6` (`AutoOpen`) |
+| `tryParse`, `parse`, `tryParseArray`, `parseArray`, `(\|Parsed\|_\|)` | `open FSharpPlus` | `tryParse`, `parse`: `Operators.fs:1502-1508`; `(\|Parsed\|_\|)`: `Operators.fs:1689`; array forms: `Parsing.fs:5-6` (all `AutoOpen`) |
 | `memoizeN` — there is **no** plain `memoize` | `open FSharpPlus` | `Memoization.fs:8-9` (`AutoOpen`), definition at `:24` |
 | Extension modules: `String.toLower`, `Option.*`, `Result.*`, `Seq.*`, `List.*`, `Map.*`, `Task.*`, `Async.*`, `Dict.*`, `ResizeArray.*`, `Obj.*`, … | `open FSharpPlus` | `Extensions/*.fs`, all `namespace FSharpPlus`, each `[<RequireQualifiedAccess>] module` (e.g. `String.fs:4-5`) |
 | Types: `Reader`, `Writer`, `State`, `Cont`, `Validation`, `NonEmptyList`, `NonEmptySeq`, `NonEmptyMap`, `NonEmptySet`, `DList`, `ZipList`, `Identity`, `Const`, `Compose`, `Coproduct`, `Kleisli`, `Free`, `ParallelArray`, `MultiMap` | `open FSharpPlus.Data` | all of `Data/*.fs` declare `namespace FSharpPlus.Data` |
@@ -112,7 +112,7 @@ let updated : int * string = (1, "a") |> (_1 .-> 99)
 // val updated : int * string = (99, "a")
 ```
 
-`tryParse` comes from the `AutoOpen` `Parsing` module, so `open FSharpPlus` alone is enough:
+`tryParse` is defined in the `AutoOpen` `Operators` module (`Operators.fs:1508`), so `open FSharpPlus` alone is enough:
 
 ```fsharp verify name=try_parse
 open FSharpPlus

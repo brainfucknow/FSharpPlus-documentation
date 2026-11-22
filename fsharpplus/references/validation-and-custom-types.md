@@ -73,7 +73,7 @@ printfn "ok=%A" (map (fun s -> s.Name, s.Age) (mkSignup "Ada" "ada@example.org" 
 // expect: ok=Ok ("Ada", 35)
 ```
 
-When the checks already return `Validation`, its ordinary `<*>` accumulates. `<*` runs a check for its errors and keeps the left value, which suits smart constructors that test one input several ways.
+When the checks already return `Validation` (for example from an existing API), its ordinary `<*>` accumulates. `<*` runs a check for its errors and keeps the left value, which suits smart constructors that test one input several ways.
 
 ```fsharp
 #r "nuget: FSharpPlus, 1.9.1"
@@ -164,7 +164,7 @@ let values (x: NonEmpty<int>) = x.Values
 let optionOk: NonEmpty<int> option = traverse (fun x -> Some (x * 2)) source
 let optionBad: NonEmpty<int> option = traverse (fun x -> if x = 2 then None else Some x) source
 let resultOk: Result<NonEmpty<int>, string> = traverse (fun x -> Ok (x + 1)) source
-printfn "nonempty=%A;%A;%A" (Option.map values optionOk) optionBad (Result.map values resultOk)
+printfn "nonempty=%A;%A;%A" (map values optionOk) optionBad (map values resultOk)
 // expect: nonempty=Some [2; 4; 6];None;Ok [2; 3; 4]
 printfn "empty=%A" (NonEmpty.Create ([]: int list))
 // expect: empty=None

@@ -30,18 +30,25 @@ let person = { Name = "Mina"; Age = 42 }
 let valid = runDecode (runEncode person)
 let missing = runDecode (Map ["age", "42"])
 let invalid = runDecode (Map ["name", "Mina"; "age", "old"])
+let lenient = runDecode (Map ["name", "Mina"; "age", "1,000"])
 printfn "decode=%A;%A;%A;%A" (map (fun p -> p.Name, p.Age) valid) missing invalid (Map.count (runEncode person))
 // expect: decode=Ok ("Mina", 42);Error "missing name";Error "invalid age";2
 printfn "encoded=%A;roundtrip=%b" (Map.toList (runEncode person)) (valid = Ok person)
 // expect: encoded=[("age", "42"); ("name", "Mina")];roundtrip=true
+printfn "lenient=%A" (map (fun p -> p.Age) lenient)
+// expect: lenient=Ok 1000
 ```
 
 `field` is point-free: `Map.tryFind key >> Option.toResultWith ...` is the
-reader body, as in [upstream's `StringCodec` test](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/tests/FSharpPlus.Tests/General.fs#L1323).
+reader body, as in
+[upstream's `StringCodec` test](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/tests/FSharpPlus.Tests/General.fs#L1323).
 Generic `throw` fails the decoder without naming the stack; it lifts the error
-through `ReaderT` into `Result`. The decoder and encoder are both exercised and round-tripped. This is neither a
-Fleece API tutorial nor a compatible replacement. A plain pair of functions is
-often clearer until reusable effect composition is needed.
+through `ReaderT` into `Result`. `tryParse` accepts more than
+`System.Int32.TryParse`, so `"1,000"` decodes as 1000; keep `Int32.TryParse`
+when existing data must reject such input. The decoder and encoder are both
+exercised and round-tripped. This is neither a Fleece API tutorial nor a
+compatible replacement. A plain pair of functions is often clearer until
+reusable effect composition is needed.
 
 ## Asynchronous optional routing
 

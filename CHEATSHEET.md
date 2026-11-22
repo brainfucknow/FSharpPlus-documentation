@@ -97,8 +97,8 @@ source ^.. lens      toListOf        lens .-> value       set
 lens %-> f           over            x <&> f              flipped map
 ```
 Lens composition is `<<` and reads **outside-in**: `_1 << _2` = second component of the first.
-Name record lenses with a leading underscore (lens.fsx:20): `let inline _name f p = f p.Name <&> fun x -> { p with Name = x }`.
 (Opposite of Aether — porting operand order verbatim silently focuses the wrong thing.)
+Name record lenses with a leading underscore (lens.fsx:20): `let inline _name f p = f p.Name <&> fun x -> { p with Name = x }`.
 
 ### Infix function application
 ```
@@ -164,7 +164,7 @@ F#'s built-in `task`, so pick another such as `taskM`), `applicative<Validation<
 This guidance generalises from examples rather than restating a declaration. For compiler-checked
 failure cases and corrections, see the skill's [SRTP error guide](fsharpplus/references/srtp-errors.md).
 Do not annotate `let!` patterns inside transformer `monad` expressions; annotate the containing
-function's return type instead. A complete annotation-placement taxonomy remains future work.
+function's return type instead, or the bound expression, as in `let! env = (ask: ReaderT<string, Result<string, string>>)`. A complete annotation-placement taxonomy remains future work.
 
 Two known hazards worth knowing while that gap is open:
 

@@ -72,7 +72,7 @@ Use a type argument when one builder alias serves many expressions, or when no b
 
 `FSharpPlus.Data` ships `ReaderT`, `WriterT`, `StateT`, `OptionT`, `ValueOptionT`, `ResultT`, `ChoiceT`, `ListT`, `SeqT`, and `ContT`. `SeqT` has both the original nested-monad representation and a newer two-parameter streaming representation; use the module operations matching the inferred type.
 
-Here `ReaderT` is layered over `Result`. Construction, `lift`, binding through `monad`, and running are all explicit. The generic `lift`, `ask` and `throw` take their type from the stack, as in the [F#+ monad page](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/docsrc/content/abstraction-monad.fsx#L150-L205):
+Here `ReaderT` is layered over `Result`. Generic `lift` and `throw` take their stack from the annotated binding, as in the [F#+ monad page](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/docsrc/content/abstraction-monad.fsx#L150-L205); `ask` is annotated where it is bound, and `ReaderT.run` is the explicit boundary:
 
 ```fsharp
 #r "nuget: FSharpPlus, 1.9.1"
@@ -85,14 +85,14 @@ let program: Stack<int> = monad {
     let! x = lifted
     let! env = (ask: Stack<string>)
     if env = "" then return! throw "no environment"
-    else return x + String.length env }
+    else return x + length env }
 let outcome: Result<int, string> = ReaderT.run program "environment"
 let failed: Result<int, string> = ReaderT.run program ""
 printfn "%A;%A" outcome failed
 // expect: Ok 15;Error "no environment"
 ```
 
-`ask` on `ReaderT` leaves the inner monad open, so annotate that expression; without it the build fails with FS0071. The qualified forms such as `ReaderT.lift` and `StateT.lift` also work and are a fallback when a generic one does not infer.
+Without the `(ask: Stack<string>)` annotation this block fails with FS0071; [SRTP errors, case 6](srtp-errors.md#6-ask-or-get-inside-a-transformer-ce) explains when. The qualified forms such as `ReaderT.lift` and `StateT.lift` also work and are a fallback when a generic one does not infer.
 
 ## Applicative computation expressions
 

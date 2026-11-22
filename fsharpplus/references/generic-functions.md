@@ -33,15 +33,27 @@ All examples assume `#r "nuget: FSharpPlus, 1.9.1"` followed by `open FSharpPlus
 | `(\|>>)` | functor map with the source first | `(<!>)` or `Map` | `let _: int list = [1; 2] \|>> ((+) 1)` |
 | `(<*)` / `(*>)` | sequence two applicatives, keep the left / right value | `(<*>)` and `Map` | `let _ = (Some 1 <* Some "ignored", Some 1 *> Some "kept")` |
 | `curryN` / `uncurryN` | `('T1 * ... * 'Tn -> 'R) -> 'T1 -> ... -> 'Tn -> 'R`; the inverse | none | `let _: int * int = (curryN (fun (a, b, c) -> a + b + c) 1 2 3, uncurryN (fun a b c -> a + b + c) (1, 2, 3))` |
-| `tryParse` / `parse` | `string -> 'T option`; `string -> 'T` (throws on bad input) | `TryParse` / `Parse` on the target type; built in for numbers, `string`, enums | `let _: int option * float = (tryParse "42", parse "1.5")` |
+| `tryParse` / `parse` | `string -> 'T option`; `string -> 'T` (throws on bad input) | `TryParse` / `Parse` on the target type; built in for numeric types, `string`, `DateTime`, `DateTimeOffset`; `parse` also for enums | `let _: int option * float = (tryParse "42", parse "1.5")` |
 
 For `Result`, generic `map2` and `(<.>)` accumulate appendable errors. Ordinary `lift2`, `(<*>)`, `applicative`, and qualified `Result.map2` keep the first error. See the [compiled comparison and pinned sources](idioms-and-antipatterns.md#independent-result-validation). Non-sequential behavior is type-dependent: on lists these operations zip rather than form a cartesian product; it does not imply parallel execution.
 
-`tryParse` and `parse` pick the target type from the annotation and parse numbers with `InvariantCulture` and `NumberStyles.Any`, so `tryParse "1,000"` is `Some 1000` for `int`. Name a concrete parser once (`let tryParseInt: string -> int option = tryParse`) and compose it: `tryParse >> Option.toResultWith "bad number"` gives a `Result`.
+`tryParse` and `parse` pick the target type from the annotation and use `InvariantCulture`. Other types work through their own .NET `TryParse` or `Parse`, such as `Guid`; `tryParse` on an enum also returns `Some` in 1.9.1. For numbers they differ: `tryParse` uses `NumberStyles.Any`, so it accepts `"1,000"`, `"12.0"` and `"1e3"` as an `int`, while `parse` uses the type's default style and throws on `"1,000"`. Use `System.Int32.TryParse` when such input must be rejected. Name a concrete parser once (`let tryParseInt: string -> int option = tryParse`) and compose it: `tryParse >> Option.toResultWith "bad number"` gives a `Result`.
+
+```fsharp
+#r "nuget: FSharpPlus, 1.9.1"
+open FSharpPlus
+
+let tryParseInt: string -> int option = tryParse
+let parsed: int option list = map tryParseInt ["42"; "1,000"; "12.0"; "1e3"; "x"]
+let strict: int option =
+    try Some (parse "1,000") with :? System.ArgumentException | :? System.FormatException -> None
+printfn "tryParse=%A;parse=%A" parsed strict
+// expect: tryParse=[Some 42; Some 1000; Some 12; Some 1000; None];parse=None
+```
 
 ## Collections and conversions
 
-These are generic over lists, arrays, sequences, strings, maps and other collections. The return type picks the instance for `ofSeq` and `ofList`, so annotate the binding.
+Most of these work over lists, arrays, sequences and strings; support for other collections varies by function. The return type picks the instance for `ofSeq` and `ofList`, so annotate the binding.
 
 | Name | API signature | Required static member | Compiled one-line example |
 |---|---|---|---|
@@ -93,7 +105,7 @@ printfn "lift=%A;%A" (ReaderT.run lifted "env") (Async.RunSynchronously (ResultT
 // expect: lift=Ok 4;Ok 5
 ```
 
-Inside a transformer `monad` block, `ask` on `ReaderT` leaves the inner monad open and fails with FS0071. Annotate the expression, not the `let!` pattern: `let! env = (ask: ReaderT<string, Result<string, string>>)`. Qualified forms such as `ReaderT.lift` and `StateT.lift` remain a valid fallback.
+Inside a `ReaderT` or `StateT` `monad` block, a bare `let! x = ask` or `let! x = get` can fail with FS0071; annotate the bound expression, for example `(ask: ReaderT<string, Result<string, string>>)`. See [SRTP errors, case 6](srtp-errors.md#6-ask-or-get-inside-a-transformer-ce) for when it fails. Qualified forms such as `ReaderT.lift` and `StateT.lift` remain a valid fallback.
 
 ## Names that do not exist
 

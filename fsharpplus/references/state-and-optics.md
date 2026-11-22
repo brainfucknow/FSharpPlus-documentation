@@ -68,4 +68,5 @@ Lens names start with an underscore, and each is written by hand as
 [F#+ lens guide](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/docsrc/content/lens.fsx#L105-L119).
 `lens getter setter` builds the same optic when a getter and setter already
 exist. Compose with `<<`, outermost first. These finite get/set and
-repeated-set checks are regression evidence, not a law proof. An optional path needs a prism and `preview`, never a total-lens `view`.
+repeated-set checks are regression evidence, not a law proof. An optional
+path needs a prism and `preview`, never a total-lens `view`.

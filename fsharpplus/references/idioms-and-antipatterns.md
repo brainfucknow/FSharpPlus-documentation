@@ -97,7 +97,7 @@ let optional: int option = preview _Some (Some 4)
 - Put a space before parenthesised and unit arguments (`ResizeArray<string> ()`, `trace.Clear ()`), and prefer `string x` to `x.ToString ()`.
 - Vertical alignment of related lines and `function` in pipelines are both fine; match the surrounding code.
 
-The parentheses and alignment points come from the upstream [developer guide](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/DEVELOPER_GUIDE.md); the rest matches upstream code such as [`Free.run >> function`](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/docsrc/content/type-free.fsx#L56).
+The parentheses and alignment points are rules in the upstream [developer guide](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/DEVELOPER_GUIDE.md). The rest is upstream habit rather than a guide rule: [`Free.run >> function` and `Console.ReadLine ()`](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/docsrc/content/type-free.fsx#L56-L58), and [`string<float>` as an encoder](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/tests/FSharpPlus.Tests/General.fs#L1323).
 
 ## Antipatterns
 

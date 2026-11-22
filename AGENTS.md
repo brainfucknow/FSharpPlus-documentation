@@ -100,7 +100,7 @@ F#'s built-in `task` builder; pick another name.
 This is a heuristic generalised from upstream examples, not a universal rule. Consult the skill's
 [SRTP error guide](fsharpplus/references/srtp-errors.md) for compiler-checked failure cases. In
 particular, do not annotate `let!` patterns inside transformer `monad` expressions; annotate the
-containing function's return type instead.
+containing function's return type instead, or the bound expression, as in `let! env = (ask: ReaderT<string, Result<string, string>>)`.
 
 ## 7. Two hazards to know
 

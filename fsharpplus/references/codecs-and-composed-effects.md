@@ -13,16 +13,12 @@ type Wire = Map<string, string>
 type Person = { Name: string; Age: int }
 type Decoder<'T> = ReaderT<Wire, Result<'T, string>>
 type Encoder<'T> = 'T -> Const<Wire, unit>
-let field key : Decoder<string> =
-    ReaderT (fun wire ->
-        match Map.tryFind key wire with
-        | Some value -> Ok value
-        | None -> Error ("missing " + key))
+let field key : Decoder<string> = ReaderT (Map.tryFind key >> Option.toResultWith ("missing " + key))
 let ageField: Decoder<int> = monad {
     let! text = field "age"
-    match System.Int32.TryParse text with
-    | true, age -> return age
-    | _ -> return! ReaderT.lift (Error "invalid age") }
+    match tryParse text with
+    | Some age -> return age
+    | None -> return! throw "invalid age" }
 let decode: Decoder<Person> = monad {
     let! name = field "name"
     let! age = ageField
@@ -34,15 +30,25 @@ let person = { Name = "Mina"; Age = 42 }
 let valid = runDecode (runEncode person)
 let missing = runDecode (Map ["age", "42"])
 let invalid = runDecode (Map ["name", "Mina"; "age", "old"])
-printfn "decode=%A;%A;%A;%A" (valid |> Result.map (fun p -> p.Name, p.Age)) missing invalid (runEncode person).Count
+let lenient = runDecode (Map ["name", "Mina"; "age", "1,000"])
+printfn "decode=%A;%A;%A;%A" (map (fun p -> p.Name, p.Age) valid) missing invalid (Map.count (runEncode person))
 // expect: decode=Ok ("Mina", 42);Error "missing name";Error "invalid age";2
-printfn "encoded=%A;roundtrip=%b" (runEncode person |> Map.toList) (valid = Ok person)
+printfn "encoded=%A;roundtrip=%b" (Map.toList (runEncode person)) (valid = Ok person)
 // expect: encoded=[("age", "42"); ("name", "Mina")];roundtrip=true
+printfn "lenient=%A" (map (fun p -> p.Age) lenient)
+// expect: lenient=Ok 1000
 ```
 
-The decoder and encoder are both exercised and round-tripped. This is neither a
-Fleece API tutorial nor a compatible replacement. A plain pair of functions is
-often clearer until reusable effect composition is needed.
+`field` is point-free: `Map.tryFind key >> Option.toResultWith ...` is the
+reader body, as in
+[upstream's `StringCodec` test](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/tests/FSharpPlus.Tests/General.fs#L1323).
+Generic `throw` fails the decoder without naming the stack; it lifts the error
+through `ReaderT` into `Result`. `tryParse` accepts more than
+`System.Int32.TryParse`, so `"1,000"` decodes as 1000; keep `Int32.TryParse`
+when existing data must reject such input. The decoder and encoder are both
+exercised and round-tripped. This is neither a Fleece API tutorial nor a
+compatible replacement. A plain pair of functions is often clearer until
+reusable effect composition is needed.
 
 ## Asynchronous optional routing
 
@@ -55,7 +61,7 @@ open FSharpPlus.Data
 
 type Request = { Path: string }
 type Handler = Request -> OptionT<Async<string option>>
-let trace = ResizeArray<string>()
+let trace = ResizeArray<string> ()
 let route path response : Handler = fun request -> OptionT (async {
     trace.Add ("check:" + path)
     if request.Path = path then
@@ -64,13 +70,13 @@ let route path response : Handler = fun request -> OptionT (async {
     else
         return None })
 let choose (handlers: Handler list) : Handler = fun request ->
-    handlers |> List.map (fun handler -> handler request) |> choice
+    handlers |> map (fun handler -> handler request) |> choice
 let execute handler request = handler request |> OptionT.run |> Async.RunSynchronously
 let selected = execute (choose [route "/first" "one"; route "/second" "two"]) { Path = "/second" }
-let selectedTrace = trace |> Seq.toList
-trace.Clear()
+let selectedTrace: string list = toList trace
+trace.Clear ()
 let unmatched = execute (choose [route "/first" "one"; route "/second" "two"]) { Path = "/none" }
-let unmatchedTrace = trace |> Seq.toList
+let unmatchedTrace: string list = toList trace
 printfn "routing=%A;%A" selected unmatched
 // expect: routing=Some "two";None
 printfn "traces=%A;%A" selectedTrace unmatchedTrace

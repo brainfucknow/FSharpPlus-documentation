@@ -27,23 +27,32 @@ let valid = action Set.empty "link"
 let unresolved = action Set.empty "other"
 let afterMissing = resolutions
 let existing = action (Set.singleton "/docs/draft.md") "link"
-let parseConfig (value: string option) =
+let positive n = if n > 0 then Some n else None
+let parseTimeout: string -> int option = tryParse >=> positive
+let parseConfig value : Result<int, string> =
     match value with
     | None -> Ok 30
-    | Some text ->
-        match System.Int32.TryParse text with
-        | true, n when n > 0 -> Ok n
-        | _ -> Error ("invalid timeout: " + text)
+    | Some text -> parseTimeout text |> Option.toResultWith ("invalid timeout: " + text)
 let good, absent, bad = parseConfig (Some "12"), parseConfig None, parseConfig (Some "zero")
+let lenient = parseConfig (Some "1,000")
 printfn "actions=%A;%A;%A;resolutions=%d" valid unresolved existing resolutions
 // expect: actions=Some "create:/docs/draft.md";None;None;resolutions=2
-printfn "config=%A;%A;%A" good absent bad
-// expect: config=Ok 12;Ok 30;Error "invalid timeout: zero"
+printfn "config=%A;%A;%A;lenient=%A" good absent bad lenient
+// expect: config=Ok 12;Ok 30;Error "invalid timeout: zero";lenient=Ok 1000
 ```
 
 The counter is inside `resolve`; failed `locate` therefore proves its later
 binder was skipped. It says nothing about work evaluated before a bind. See
 [computation expressions](computation-expressions.md) and [inference repairs](srtp-errors.md).
+
+`parseTimeout` composes two `option`-returning steps with `>=>`, as the
+[F#+ tutorial](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/docsrc/content/tutorial.fsx#L79-L97)
+does with `tryParseInt >=> tryDivide 100`. The annotation names the parsed
+type. `Option.toResultWith` then names the error, as in
+[upstream's codec test](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/tests/FSharpPlus.Tests/General.fs#L1323).
+`tryParse` accepts more than `System.Int32.TryParse`, such as `"1,000"`,
+`"12.0"` and `"1e3"`; keep `Int32.TryParse` when existing code must reject
+that input.
 
 ## Selective mapping
 

@@ -136,7 +136,7 @@ The later `open Other` selects its monomorphic operator; this is name shadowing,
 let x: int option = FSharpPlus.Operators.(<*>) (Some ((+) 1)) (Some 2)
 ```
 
-## 6. Annotated `let!` pattern inside a transformer CE
+## 6. `ask` or `get` inside a transformer CE
 
 **Intentionally failing:**
 
@@ -171,6 +171,42 @@ let url (path: string) : ReaderT<Config, Result<string, string>> = monad {
 let outcome: Result<string, string> = ReaderT.run (url "users") { BaseUrl = "https://example.com" }
 printfn "%A" outcome
 // expect: Ok "https://example.com/users"
+```
+
+The fixed form compiles because `config.BaseUrl` reads a field of the bound value, and that lookup makes the compiler resolve `ask` early. In a `ReaderT` or `StateT` stack, a bare `let! x = ask` or `let! x = get` whose value is used only through functions or operators fails the same way, even when the return type is annotated. Plain `Reader` and `State` are not affected.
+
+**Intentionally failing:**
+
+```fsharp
+#r "nuget: FSharpPlus, 1.9.1"
+open FSharpPlus
+open FSharpPlus.Data
+type Stack<'T> = ReaderT<string, Result<'T, string>>
+let size: Stack<int> = monad {
+    let! env = ask
+    return String.length env }
+```
+
+Captured text:
+
+```text
+error FS0071: Type constraint mismatch when applying the default type 'obj' for a type inference variable. No overloads match for method 'op_GreaterGreaterEquals'.
+Known return type: Result<int,string>
+Known type parameters: < obj , (string -> Result<int,string>) >
+```
+
+Annotate the bound expression, not the pattern: `(ask: Stack<string>)` names the whole stack, while `let! (env: string) = ask` still fails.
+
+```fsharp
+#r "nuget: FSharpPlus, 1.9.1"
+open FSharpPlus
+open FSharpPlus.Data
+type Stack<'T> = ReaderT<string, Result<'T, string>>
+let size: Stack<int> = monad {
+    let! env = (ask: Stack<string>)
+    return String.length env }
+printfn "%A" (ReaderT.run size "environment")
+// expect: Ok 11
 ```
 
 ## 7. `monad` over a custom type without `Delay`

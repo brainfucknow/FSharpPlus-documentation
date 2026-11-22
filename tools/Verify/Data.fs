@@ -126,7 +126,9 @@ let assertions : Assertion list =
       { File = "Lens.fs"; Line = 254; Contains = "(^?)"; Claim = "^? is preview, returns option" }
       { File = "Lens.fs"; Line = 257; Contains = "(^..)"; Claim = "^.. is toListOf" }
       { File = "Lens.fs"; Line = 263; Contains = "(<&>)"; Claim = "<&> lives in FSharpPlus.Lens, not FSharpPlus" }
-      { File = "Parsing.fs"; Line = 5; Contains = "AutoOpen"; Claim = "Parsing is AutoOpen - tryParse comes from 'open FSharpPlus'" }
+      { File = "Parsing.fs"; Line = 5; Contains = "AutoOpen"; Claim = "Parsing is AutoOpen - parseArray and tryParseArray come from 'open FSharpPlus'" }
+      { File = "Operators.fs"; Line = 1508; Contains = "let inline tryParse"; Claim = "tryParse is defined in the AutoOpen Operators module" }
+      { File = "Operators.fs"; Line = 1689; Contains = "(|Parsed|_|)"; Claim = "the Parsed active pattern is defined in Operators" }
       { File = "Memoization.fs"; Line = 8; Contains = "AutoOpen"; Claim = "Memoization is AutoOpen" }
       { File = "String.fs"; Line = 4; Contains = "RequireQualifiedAccess"; Claim = "extension modules are RequireQualifiedAccess" }
       { File = "Generic.fs"; Line = 12; Contains = "module Generic"; Claim = "Math.Generic is a plain module - needs its own open" }
@@ -144,6 +146,7 @@ let assertions : Assertion list =
       { File = "computation-expressions.fsx"; Line = 47; Contains = "asnNumber: Async<_>"; Claim = "upstream annotates the BINDING, not the expression" }
       { File = "computation-expressions.fsx"; Line = 57; Contains = "lstNumber: list<_>"; Claim = "upstream annotates the binding for list too" }
       { File = "abstraction-zipapplicative.fsx"; Line = 154; Contains = "applicative2'"; Claim = "the ONE remaining obsolete CE use in the upstream docs" }
+      { File = "lens.fsx"; Line = 20; Contains = "start with an underscore"; Claim = "upstream convention: lens identifiers start with an underscore" }
       { File = "lens.fsx"; Line = 198; Contains = "length, traverse"; Claim = "the lens page notes inline that a second open is needed" }
       { File = "tutorial.fsx"; Line = 5; Contains = "#r"; Claim = "doc pages contain #r yet compile as <Compile> items - no #if guard needed" }
       { File = "index.fsx"; Line = 4; Contains = "#r"; Claim = "index.fsx is a real doc page with directives" }
@@ -205,8 +208,8 @@ let present : PresentName list =
       { Name = "unzip";       Claim = "generic unzip" }
       { Name = "tap";         Claim = "side-effect passthrough, |- flipped" }
       { Name = "memoizeN";    Claim = "from the AutoOpen Memoization module - note there is no plain `memoize`" }
-      { Name = "tryParse";    Claim = "from the AutoOpen Parsing module" }
-      { Name = "parse";       Claim = "from the AutoOpen Parsing module" }
+      { Name = "tryParse";    Claim = "from the AutoOpen Operators module" }
+      { Name = "parse";       Claim = "from the AutoOpen Operators module" }
       { Name = "view";        Claim = "lens read - needs open FSharpPlus.Lens" }
       { Name = "setl";        Claim = "lens write" }
       { Name = "over";        Claim = "lens modify" }

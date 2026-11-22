@@ -79,7 +79,7 @@ printfn "%A" (DList.toList built)
 
 ## Lens conventions
 
-Standard optics use an underscore prefix: tuple lenses `_1`, `_2`, `_3`; option prism `_Some`. Read with `view`, replace with `setl`, and transform with `over`. A prism such as `_Some` is normally read with `preview`, not `view`.
+Standard optics use an underscore prefix: tuple lenses `_1`, `_2`, `_3`; option prism `_Some`. Name your own lenses the same way: `let inline _name f p = f p.Name <&> fun x -> { p with Name = x }` (see the [optics recipe](state-and-optics.md#optics-over-language-data)). Read with `view`, replace with `setl`, and transform with `over`. A prism such as `_Some` is normally read with `preview`, not `view`.
 
 ```fsharp
 #r "nuget: FSharpPlus, 1.9.1"
@@ -91,8 +91,16 @@ let incremented: int * string = over _1 ((+) 1) (1, "a")
 let optional: int option = preview _Some (Some 4)
 ```
 
+## Layout
+
+- Avoid unnecessary parentheses and pipes, and do not mix them in one expression: write `f (g x)` or `x |> g |> f`, not `f (x |> g)`.
+- Put a space before parenthesised and unit arguments (`ResizeArray<string> ()`, `trace.Clear ()`), and prefer `string x` to `x.ToString ()`.
+- Vertical alignment of related lines and `function` in pipelines are both fine; match the surrounding code.
+
+The parentheses and alignment points are rules in the upstream [developer guide](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/DEVELOPER_GUIDE.md). The rest is upstream habit rather than a guide rule: [`Free.run >> function` and `Console.ReadLine ()`](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/docsrc/content/type-free.fsx#L56-L58), and [`string<float>` as an encoder](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/tests/FSharpPlus.Tests/General.fs#L1323).
+
 ## Antipatterns
 
-Long point-free chains of generic operators are idiomatic in F#+-style code, but they hide intermediate types, so an overload error can be hard to locate. When one fails, name the stages and annotate their boundaries until the error points at one step. Do not open all of `FSharpPlus` merely for one extension; qualify the extended module or open `FSharpPlus.Operators` narrowly.
+Short point-free compositions such as `tryParse >=> positive` or `Map.tryFind key >> Option.toResultWith error` read well (see the [optional actions](application-workflows.md#optional-code-actions) and [codec](codecs-and-composed-effects.md#codec-pattern) recipes). Long point-free chains of generic operators are idiomatic in F#+-style code too, but they hide intermediate types, so an overload error can be hard to locate. When one fails, name the stages and annotate their boundaries until the error points at one step. Do not open all of `FSharpPlus` merely for one extension; qualify the extended module or open `FSharpPlus.Operators` narrowly.
 
 For `Async` or `Task`, the generic `monad` builder and the built-in `async` or `task` builders are both reasonable; follow what the codebase already uses. In code that uses F#+ only incidentally, the built-in builder usually reads more plainly. Likewise, if another library deliberately provides a specialized `result` builder and the codebase uses it, keep using that builder rather than switching to generic `monad`.

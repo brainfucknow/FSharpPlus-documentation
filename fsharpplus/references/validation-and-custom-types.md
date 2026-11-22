@@ -10,7 +10,7 @@ For Result-returning checks, use `zapp` directly rather than converting through 
 #r "nuget: FSharpPlus, 1.9.1"
 open FSharpPlus
 
-let trace = ResizeArray<string>()
+let trace = ResizeArray<string> ()
 let name text : Result<string, string list> =
     trace.Add "name"
     if text = "" then Error ["empty name"] else Ok text
@@ -43,6 +43,68 @@ printfn "dependent=%A;calls=%d" dependent dependentCalls
 ```
 
 The error type must support F#+'s append/`Plus` operation. Neither non-sequential applicatives nor `and!` alone guarantee parallel execution. The builder determines accumulation: `applicative` on Result keeps the first error, whereas `zapp` accumulates. Binding skips a later binder but cannot undo eagerly performed work. See [operation selection and existing Validation APIs](idioms-and-antipatterns.md#independent-result-validation) for a compiled comparison and pinned upstream sources. The external examples above motivate the diagnostic pattern; the Result-native implementation here uses FSharpPlus 1.9.1's non-sequential applicative.
+
+### Constructor chains
+
+Upstream F#+ code builds a value from independent checks with operators, one per line: the constructor, then `<!>`, then one apply per field. On `Result`, use `<.>` so errors accumulate; `<*>` would keep only the first. `curryN` turns a tupled `Create` into the curried function the chain needs.
+
+```fsharp
+#r "nuget: FSharpPlus, 1.9.1"
+open FSharpPlus
+
+type Signup = { Name: string; Email: string; Age: int } with
+    static member Create (name, email, age) = { Name = name; Email = email; Age = age }
+let mkName text : Result<string, string list> = if text = "" then Error ["empty name"] else Ok text
+let mkEmail text : Result<string, string list> = if String.contains '@' text then Ok text else Error ["no @ in email"]
+let mkAge age : Result<int, string list> = if age < 18 then Error ["under age"] else Ok age
+let mkSignup name email age : Result<Signup, string list> =
+    curryN Signup.Create
+    <!> mkName name
+    <.> mkEmail email
+    <.> mkAge age
+let firstOnly: Result<Signup, string list> =
+    curryN Signup.Create
+    <!> mkName ""
+    <*> mkEmail "ada"
+    <*> mkAge 12
+printfn "chain=%A;%A" (mkSignup "" "ada" 12) firstOnly
+// expect: chain=Error ["empty name"; "no @ in email"; "under age"];Error ["empty name"]
+printfn "ok=%A" (map (fun s -> s.Name, s.Age) (mkSignup "Ada" "ada@example.org" 35))
+// expect: ok=Ok ("Ada", 35)
+```
+
+When the checks already return `Validation` (for example from an existing API), its ordinary `<*>` accumulates. `<*` runs a check for its errors and keeps the left value, which suits smart constructors that test one input several ways.
+
+```fsharp
+#r "nuget: FSharpPlus, 1.9.1"
+open FSharpPlus
+open FSharpPlus.Data
+
+type Signup = { Name: string; Email: string; Age: int } with
+    static member Create (name, email, age) = { Name = name; Email = email; Age = age }
+let nonEmpty field text : Validation<string list, string> =
+    if text = "" then Failure [field + " is empty"] else Success text
+let hasAt text : Validation<string list, string> =
+    if String.contains '@' text then Success text else Failure ["no @ in email"]
+let hasDot text : Validation<string list, string> =
+    if String.contains '.' text then Success text else Failure ["no . in email"]
+let email text : Validation<string list, string> =
+    result text <*
+    hasAt  text <*
+    hasDot text
+let validAge age : Validation<string list, int> = if age < 18 then Failure ["under age"] else Success age
+let signup name address age : Validation<string list, Signup> =
+    curryN Signup.Create
+    <!> nonEmpty "name" name
+    <*> email address
+    <*> validAge age
+printfn "email=%A;%A" (email "ada") (email "ada@example.org")
+// expect: email=Failure ["no @ in email"; "no . in email"];Success "ada@example.org"
+printfn "signup=%A" (signup "" "ada" 12)
+// expect: signup=Failure ["name is empty"; "no @ in email"; "no . in email"; "under age"]
+```
+
+These follow the layout of the [F#+ Validation page](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/docsrc/content/type-validation.fsx#L125-L129) and its [smart constructors](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/docsrc/content/type-validation.fsx#L194-L198), with `curryN` as in the [Free monad page](https://github.com/fsprojects/FSharpPlus/blob/d1643d2ac9346c6b2e6bf52765a0648177b5ed9e/docsrc/content/type-free.fsx#L97-L102). The `zapp` block above and these chains are interchangeable for Result; pick the one the surrounding code uses. Do not convert Result checks to `Validation` just to use `<*>`; see [existing Validation APIs](idioms-and-antipatterns.md#existing-validation-apis).
 
 ## Domain containers
 
@@ -97,11 +159,12 @@ type NonEmpty<'T> = One of 'T | More of 'T * NonEmpty<'T> with
             | One v -> map One (mapping v)
             | More (h, t) -> lift2 (fun head tail -> More (head, tail)) (mapping h) (go t)
         go source
-let source = NonEmpty.Create [1; 2; 3] |> Option.get
+let source = Option.get (NonEmpty.Create [1; 2; 3])
+let values (x: NonEmpty<int>) = x.Values
 let optionOk: NonEmpty<int> option = traverse (fun x -> Some (x * 2)) source
 let optionBad: NonEmpty<int> option = traverse (fun x -> if x = 2 then None else Some x) source
 let resultOk: Result<NonEmpty<int>, string> = traverse (fun x -> Ok (x + 1)) source
-printfn "nonempty=%A;%A;%A" (optionOk |> Option.map (fun x -> x.Values)) optionBad (resultOk |> Result.map (fun x -> x.Values))
+printfn "nonempty=%A;%A;%A" (map values optionOk) optionBad (map values resultOk)
 // expect: nonempty=Some [2; 4; 6];None;Ok [2; 3; 4]
 printfn "empty=%A" (NonEmpty.Create ([]: int list))
 // expect: empty=None

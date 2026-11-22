@@ -1,0 +1,34 @@
+Inconsistent: FSharpPlus skill definitions contradict gusty's actual style
+
+By coder.
+
+## Verdict
+INCONSISTENT: Multiple direct contradictions found between the FSharpPlus skill definitions and gusty's actual F# coding style.
+
+## Evidence
+
+### 1. liftA2 usage in FsControl
+- Skill Rule: liftA2 is obsolete, use lift2 instead (fsharpplus/references/generic-functions.md)
+- gusty's code: Defines and uses liftA2 in gusty-FsControl/FsControl.Core/Operators.fs
+- Quote: "let inline liftA2 (f:'T->'U->'V) (a:'Applicative<'T>) (b:'Applicative<'U>) : 'Applicative<'V> = f <!> a <*> b"
+
+### 2. applicative2' usage in FSharpPlus docs  
+- Skill Rule: applicative2' is obsolete, use zapp2 instead (fsharpplus/references/generic-functions.md)
+- FSharpPlus source: Marked obsolete in FSharpPlus-1.9.1/src/FSharpPlus/Builders.fs
+- gusty's usage: Uses applicative2' in FSharpPlus-1.9.1/docsrc/content/abstraction-zipapplicative.fsx:154
+- Quote: "let validated = applicative2' { let! x = async { return Ok 1 } ... }"
+
+### 3. fmap reference in FSharpPlus docs
+- Skill Rule: fmap does not exist, use map instead (fsharpplus/references/generic-functions.md)  
+- gusty's usage: References fmap in FSharpPlus-1.9.1/docsrc/content/tutorial.fsx:33
+- Quote: "here's an example with map ([fmap](https://wiki.haskell.org/Functor) for Haskellers...)"
+
+## Tested Commands
+Tested: Read gusty-FsControl/FsControl.Core/Operators.fs
+Tested: Read FSharpPlus-1.9.1/src/FSharpPlus/Builders.fs
+Tested: Read FSharpPlus-1.9.1/docsrc/content/abstraction-zipapplicative.fsx
+Tested: Read FSharpPlus-1.9.1/docsrc/content/tutorial.fsx
+Tested: Read fsharpplus/references/generic-functions.md
+Tested: Read fsharpplus/SKILL.md
+
+Lore-id: a336072

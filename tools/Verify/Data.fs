@@ -144,6 +144,7 @@ let assertions : Assertion list =
       { File = "computation-expressions.fsx"; Line = 47; Contains = "asnNumber: Async<_>"; Claim = "upstream annotates the BINDING, not the expression" }
       { File = "computation-expressions.fsx"; Line = 57; Contains = "lstNumber: list<_>"; Claim = "upstream annotates the binding for list too" }
       { File = "abstraction-zipapplicative.fsx"; Line = 154; Contains = "applicative2'"; Claim = "the ONE remaining obsolete CE use in the upstream docs" }
+      { File = "lens.fsx"; Line = 20; Contains = "start with an underscore"; Claim = "upstream convention: lens identifiers start with an underscore" }
       { File = "lens.fsx"; Line = 198; Contains = "length, traverse"; Claim = "the lens page notes inline that a second open is needed" }
       { File = "tutorial.fsx"; Line = 5; Contains = "#r"; Claim = "doc pages contain #r yet compile as <Compile> items - no #if guard needed" }
       { File = "index.fsx"; Line = 4; Contains = "#r"; Claim = "index.fsx is a real doc page with directives" }

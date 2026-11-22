@@ -97,6 +97,7 @@ source ^.. lens      toListOf        lens .-> value       set
 lens %-> f           over            x <&> f              flipped map
 ```
 Lens composition is `<<` and reads **outside-in**: `_1 << _2` = second component of the first.
+Name record lenses with a leading underscore (lens.fsx:20): `let inline _name f p = f p.Name <&> fun x -> { p with Name = x }`.
 (Opposite of Aether — porting operand order verbatim silently focuses the wrong thing.)
 
 ### Infix function application

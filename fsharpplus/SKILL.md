@@ -10,12 +10,12 @@ F#+ provides generic programming over F# types through statically resolved type 
 
 | Symptom or task | Read |
 |---|---|
-| Need a generic function or operator | `references/generic-functions.md` |
+| Need a generic function or operator, `tryParse`, collection helpers, or transformer operations (`lift`, `get`, `throw`) | `references/generic-functions.md` |
 | Ambiguous or missing function; wrong overload picked | `references/namespaces-and-shadowing.md` |
 | Compiler error mentioning member constraints or no overloads | `references/srtp-errors.md` |
 | `monad` CE, applicative CE, or transformer stacks | `references/computation-expressions.md` |
 | Make a custom type work with `map`, `bind`, or `traverse` | `references/extending-types.md` |
-| Independent Result errors with zapp; Validation compatibility; generic vs concrete style; lenses | `references/idioms-and-antipatterns.md` |
+| Independent Result errors with zapp; Validation compatibility; generic vs concrete style; layout; lens naming | `references/idioms-and-antipatterns.md` |
 | Practical pattern from a problem (optional actions, state, optics, validation, codecs, async routing) | `references/real-world-use-cases.md` |
 
 ## Non-negotiable rules

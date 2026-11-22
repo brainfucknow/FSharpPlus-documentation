@@ -142,14 +142,21 @@ pur x      // Pure.Invoke   — ZIP applicatives
 
 The library is SRTP-heavy, so return-type annotations are frequently required to drive resolution. The
 CE builders are declared with an explicit type parameter — e.g. `monad<'``monad<'t>``>` — which is why
-the upstream docs annotate the binding rather than the expression:
+upstream annotates the binding rather than the expression:
 
 ```fsharp
-let (asnNumber: Async<_>) = monad.fx { ... }   // docsrc/content/computation-expressions.fsx:47
-let (lstNumber: list<_>)  = monad.plus' { ... } // :57
+let lst: _ list = monad.plus { ... }          // upstream tests, ComputationExpressions.fs:141
+let asnNumber: Async<_> = monad.fx { ... }
 ```
 
-Annotate the **binding**, and prefer `Async<_>` over a fully-applied type so inference still does work.
+Annotate the **binding**, and prefer `Async<_>` or `_ list` over a fully-applied type so inference still
+does work. The parenthesised form `let (asnNumber: Async<_>) = ...` is equivalent; upstream docs use it
+at docsrc/content/computation-expressions.fsx:47 and :57.
+
+Because of that type parameter you can also pass the type to the builder itself:
+`let task<'t> = monad'<Task<'t>>` (upstream tests, ComputationExpressions.fs:16),
+`applicative<Validation<_,_>> { ... }` (ComputationExpressions.fs:98), and `monad<SeqT<Async<bool>, 't>>.plus` in
+the SeqT tests.
 
 This guidance generalises from examples rather than restating a declaration. For compiler-checked
 failure cases and corrections, see the skill's [SRTP error guide](fsharpplus/references/srtp-errors.md).

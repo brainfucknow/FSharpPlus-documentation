@@ -21,7 +21,7 @@ let find id : State<Repo, string option> = monad {
 let rename id name : State<Repo, unit> = monad {
     let! state = State.get
     do! State.put { state with Items = if Map.containsKey id state.Items then Map.add id name state.Items else state.Items } }
-let program : State<Repo, int * int * string option> = monad {
+let program: State<Repo, int * int * string option> = monad {
     let! a = insert "north"
     let! b = insert "south"
     do! rename a "north-updated"

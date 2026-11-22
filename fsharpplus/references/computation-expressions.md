@@ -24,6 +24,48 @@ let resultValue: Result<int, string> = monad {
     return x + 1 }
 ```
 
+Both builders compile for `option` and `Result` and give the same value. Neither type has a delay of its own, so the lazy `monad` runs the body at once anyway; `monad'` says so directly. The choice matters for types that can delay, such as `Async`, `Lazy`, `seq`, and functions, where `monad` defers the body until the value is run.
+
+## Telling the builder its type
+
+Builders are generic values, so the compiler often needs the result type. Annotate the binding, without parentheses, and leave `_` holes for what inference can fill. The parenthesised form `let (items: list<_>) = ...` is equivalent.
+
+```fsharp
+#r "nuget: FSharpPlus, 1.9.1"
+open FSharpPlus
+let items: _ list = monad.plus {
+    return 5
+    return 6 }
+let (sameItems: list<_>) = monad.plus' {
+    return 5
+    return 6 }
+printfn "%A %A" items sameItems
+// expect: [5; 6] [5; 6]
+```
+
+The builders also take the type as an explicit type argument, which fixes it once for every use. Upstream tests write `let task<'t> = monad'<Task<'t>>`, `applicative<Validation<_,_>> { ... }`, and `monad<SeqT<Async<bool>, 't>>.plus`.
+
+```fsharp
+#r "nuget: FSharpPlus, 1.9.1"
+open System.Threading.Tasks
+open FSharpPlus
+open FSharpPlus.Data
+let taskM<'t> = monad'<Task<'t>>
+let answer = taskM {
+    let! x = Task.FromResult 41
+    return x + 1 }
+let check (name: string) (age: int) = applicative<Validation<_, _>> {
+    let! n = if name = "" then Failure ["name"] else Success name
+    and! a = if age < 0 then Failure ["age"] else Success age
+    return n, a }
+printfn "task=%d" answer.Result
+// expect: task=42
+printfn "%A" (check "" -1)
+// expect: Failure ["name"; "age"]
+```
+
+Use a type argument when one builder alias serves many expressions, or when no binding is available to annotate. Otherwise annotating the binding or the function's return type is the more common form.
+
 ## Transformers
 
 `FSharpPlus.Data` ships `ReaderT`, `WriterT`, `StateT`, `OptionT`, `ValueOptionT`, `ResultT`, `ChoiceT`, `ListT`, `SeqT`, and `ContT`. `SeqT` has both the original nested-monad representation and a newer two-parameter streaming representation; use the module operations matching the inferred type.

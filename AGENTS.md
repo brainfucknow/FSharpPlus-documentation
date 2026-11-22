@@ -88,9 +88,13 @@ return-type annotations are frequently needed. Annotate the **binding**, and pre
 type so inference still does work:
 
 ```fsharp
-let (result: Async<_>) = monad.fx { ... }
-let (items: list<_>)   = monad.plus' { ... }
+let lst: _ list = monad.plus { ... }       // dominant upstream form
+let answer: Async<_> = monad.fx { ... }
 ```
+
+The parenthesised form `let (answer: Async<_>) = ...` is equivalent; upstream docs use it in two places.
+An explicit builder type argument also works: `let task<'t> = monad'<Task<'t>>`, or
+`applicative<Validation<_,_>> { ... }`.
 
 This is a heuristic generalised from upstream examples, not a universal rule. Consult the skill's
 [SRTP error guide](fsharpplus/references/srtp-errors.md) for compiler-checked failure cases. In

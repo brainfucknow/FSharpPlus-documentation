@@ -7,6 +7,7 @@ All examples assume `#r "nuget: FSharpPlus, 1.9.1"` followed by `open FSharpPlus
 | `map` | `('T -> 'U) -> Functor<'T> -> Functor<'U>` | `Map (source, mapping)` | `let _: int option = map ((+) 1) (Some 2)` |
 | `bind` | `('T -> Monad<'U>) -> Monad<'T> -> Monad<'U>` | `(>>=) (source, binder)` | `let _: int option = bind (fun x -> Some (x + 1)) (Some 2)` |
 | `result` | `'T -> Applicative<'T>` | `Return value` | `let returned: int option = result 3` |
+| `pur` | `'T -> ZipApplicative<'T>` | `Pure value` | `let pured: int option = pur 3` |
 | `lift2` | `('T -> 'U -> 'V) -> Applicative<'T> -> Applicative<'U> -> Applicative<'V>` | `Lift2 (f, x, y)` (or applicative fallback) | `let _: int option = lift2 (+) (Some 2) (Some 3)` |
 | `map2` | `('T -> 'U -> 'V) -> ZipApplicative<'T> -> ZipApplicative<'U> -> ZipApplicative<'V>` | `Map2 (f, x, y)` (or zip fallback) | `let _: Result<int * int, string list> = map2 tuple2 (Error ["left"]) (Error ["right"])` |
 | `traverse` | `('T -> Functor<'U>) -> Traversable<'T> -> Functor<Traversable<'U>>` | `Traverse (source, f)` | `let _: int list option = traverse (fun x -> Some (x + 1)) [1; 2]` |
@@ -40,7 +41,15 @@ These public generic names are absent from the 1.9.1 `FSharpPlus.Operators` API:
 | Invented name | Use instead |
 |---|---|
 | `fmap` | `map` or `(<!>)` |
-| `pure` | `result` (the internal builder helper `pur` is not the public return function) |
+| `pure` | `result` for monads and sequential applicatives; `pur` for zip applicatives (`zapp`, `(<.>)`). Both are public and they differ: on `list`, `result 1` is `[1]` while `pur 1` is an endless cycle of `1`. |
 | `forM` | `traverse` with arguments in F#+ order |
-| `liftA2` | `lift2` |
 | `mapM` | `traverse`; the only `mapM` in 1.9.1 is the module function `SeqT.mapM` |
+
+## Obsolete names
+
+These still compile in 1.9.1 but are marked `Obsolete`, so they produce a warning, not an error:
+
+| Obsolete name | Use instead |
+|---|---|
+| `liftA2` | `lift2` |
+| `applicative'`, `applicative2'`, `applicative3'` | `zapp`, `zapp2`, `zapp3` |

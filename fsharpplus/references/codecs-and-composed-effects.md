@@ -9,30 +9,30 @@ Compose an in-memory decoder and encoder from reusable effects. The pattern appe
 open FSharpPlus
 open FSharpPlus.Data
 
-type Wire = Map<string,string>
+type Wire = Map<string, string>
 type Person = { Name: string; Age: int }
-type Decoder<'T> = ReaderT<Wire, Result<'T,string>>
-type Encoder<'T> = 'T -> Const<Wire,unit>
+type Decoder<'T> = ReaderT<Wire, Result<'T, string>>
+type Encoder<'T> = 'T -> Const<Wire, unit>
 let field key : Decoder<string> =
     ReaderT (fun wire ->
         match Map.tryFind key wire with
         | Some value -> Ok value
         | None -> Error ("missing " + key))
-let ageField : Decoder<int> = monad {
+let ageField: Decoder<int> = monad {
     let! text = field "age"
     match System.Int32.TryParse text with
     | true, age -> return age
     | _ -> return! ReaderT.lift (Error "invalid age") }
-let decode : Decoder<Person> = monad {
+let decode: Decoder<Person> = monad {
     let! name = field "name"
     let! age = ageField
     return { Name = name; Age = age } }
-let encode : Encoder<Person> = fun p -> Const (Map ["name", p.Name; "age", string p.Age])
+let encode: Encoder<Person> = fun p -> Const (Map ["name", p.Name; "age", string p.Age])
 let runDecode wire = ReaderT.run decode wire
 let runEncode value = Const.run (encode value)
 let person = { Name = "Mina"; Age = 42 }
 let valid = runDecode (runEncode person)
-let missing = runDecode (Map ["age","42"])
+let missing = runDecode (Map ["age", "42"])
 let invalid = runDecode (Map ["name", "Mina"; "age", "old"])
 printfn "decode=%A;%A;%A;%A" (valid |> Result.map (fun p -> p.Name, p.Age)) missing invalid (runEncode person).Count
 // expect: decode=Ok ("Mina", 42);Error "missing name";Error "invalid age";2
